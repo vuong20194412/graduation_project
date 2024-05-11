@@ -1,0 +1,35 @@
+<header>
+    <div id="id_header_div_user" tabindex="1" title="Nhấp để tới phần quản lý tài khoản.">
+        <a href="{% url 'practice:view_profile' request.user.id %}"><strong>{{user.name|truncatechars:30}}</strong></a>
+    </div>
+    <nav>
+        <a href="{% url 'practice:view_unanswered_questions' %}?tid={{current_tag_id}}&limit={{current_limit}}"
+           class="{% if 'practice:view_unanswered_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi chưa làm</a>
+        <a href="{% url 'practice:view_answered_questions' %}?tid={{tag_id}}&limit={{limit}}"
+           class="{% if 'practice:view_answered_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi đã làm</a>
+        <a href="{% url 'practice:view_created_questions' %}?tid={{tag_id}}&limit={{limit}}"
+           class="{% if 'practice:view_created_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi đã tạo</a>
+    </nav>
+    <div id="id_header_buttons">
+        <!-- button change password -->
+        <a class="button" href="{{change_password_link}}">Đổi mật khẩu</a>
+        <!-- end button change password -->
+        <!-- button logout -->
+        <a class="button" id="button_logout" href="#logout_dialog">Đăng Xuất</a>
+        <dialog id="logout_dialog"
+                onfocus="this.querySelector('form>div>a.button[name=button_cancel]').focus();">
+            <form method="post" action="{{logout_link}}">
+                <h2>ĐĂNG XUẤT</h2>
+                {% csrf_token %}
+                <p>Bạn chắc chắn muốn đăng xuất chứ!</p>
+                <div style="box-sizing:border-box;display:flex;justify-content:space-around;gap:16px;">
+                    <button type="submit" tabindex="2"
+                            onfocusout="this.siblings('a.button[name=button_cancel]').focus();">Đăng Xuất
+                    </button>
+                    <a class="button" tabindex="1" name="button_cancel" href="#button_logout">Không</a>
+                </div>
+            </form>
+        </dialog>
+        <!-- end button logout -->
+    </div>
+</header>

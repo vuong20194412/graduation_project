@@ -1,0 +1,22 @@
+py -V
+pip -V
+py -m pip install --upgrade pip
+py -m pip install django
+py -m django --version
+django-admin startproject graduation_project
+cd .\graduation_project\
+py manage.py startapp practice
+type nul > practice/urls.py
+mkdir practice\templates\practice
+mkdir practice\static\practice
+py manage.py startapp users
+type nul > users/urls.py
+mkdir users\templates\users
+mkdir users\static\users
+py manage.py makemigrations users
+py manage.py makemigrations practice
+py manage.py migrate
+type nul > users/middleware.py
+
+#To add ImageField
+py -m pip install Pillow
