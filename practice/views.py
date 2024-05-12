@@ -12,8 +12,9 @@ from django.urls import reverse
 from django.http import HttpResponseBadRequest, HttpResponseNotFound, Http404
 from django.utils import timezone
 
-from .models import QuestionTag, Question, Answer, Comment
+from .models import QuestionTag, Question, Answer, Comment, CommentEvaluation, QuestionEvaluation
 from users.views import ensure_is_not_anonymous_user, ensure_is_admin
+from users.models import Log
 
 
 def convert_to_int(string: str, default: int = 0):
@@ -173,6 +174,8 @@ def view_answered_questions(request):
         if not isinstance(kfilter, dict):
             kfilter = {}
         kfilter['answer__user_id'] = user_id
+        if get_user_model().objects.filter(id=user_id).exclude(role='Admin'):
+            kfilter['state'] = 'Approved'
         if count:
             return Question.objects.filter(**kfilter).count()
         elif isinstance(order_by, dict):
@@ -198,6 +201,8 @@ def view_unanswered_questions(request):
         if not isinstance(kfilter, dict):
             kfilter = {}
         kexclude = {'answer__user_id': user_id}
+        if get_user_model().objects.filter(id=user_id).exclude(role='Admin'):
+            kfilter['state'] = 'Approved'
         if count:
             return Question.objects.filter(**kfilter).exclude(**kexclude).count()
         elif isinstance(order_by, dict):
@@ -504,7 +509,10 @@ def process_new_answer(request, question_id):
 
         return _data, not first_invalid
 
-    question = get_object_or_404(Question, pk=question_id)
+    question = Question.objects.filter(id=question_id,state='Approved')
+    if not question:
+        return HttpResponseNotFound()
+    question = question[0]
     if request.method == 'POST':
         data, is_valid = valid_form_new_answer(_data=data, choices=question.choices)
         if is_valid:
@@ -530,13 +538,26 @@ def process_new_answer(request, question_id):
 
 @ensure_is_not_anonymous_user
 def view_detail_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
+    if request.user.role == 'Admin':
+        question = get_object_or_404(Question, pk=question_id)
+    else:
+        question = Question.objects.filter(state='Approved') or Question.objects.filter(user_id=request.user.id)
+        if not question:
+            return HttpResponseNotFound()
+        question = question[0]
     notification = ''
     past_answers = []
     if request.method == 'GET':
-        if (request.GET.get('notification') or '') == 'create_answer_success':
+        notification = request.GET.get('notification') or ''
+        if notification == 'create_answer_success':
             notification = 'Tạo câu trả lời thành công'
-        past_answers = question.answer_set.filter(user_id=request.user.id)
+        elif notification == 'approved_success':
+            notification = 'Thực hiện duyệt câu hỏi thành công'
+        elif notification == 'unapproved_success':
+            notification = 'Thực hiện không duyệt câu hỏi thành công'
+        elif notification == 'locked_success':
+            notification = 'Thực hiện khóa câu hỏi thành công'
+        past_answers = Answer.objects.filter(user_id=request.user.id,question_id=question_id)
     return render(request,
                   "practice/detail_question.html",
                   {
@@ -550,7 +571,13 @@ def view_detail_question(request, question_id):
 
 @ensure_is_not_anonymous_user
 def view_detail_answer(request, answer_id=None):
-    answer = get_object_or_404(Answer, pk=answer_id)
+    if request.user.role != 'Admin':
+        answer = get_object_or_404(Answer, pk=answer_id)
+    else:
+        answer = Answer.objects.filter(user_id=request.user.id,question__state='Approved') or Question.objects.filter(user_id=request.user.id,question__user_id=request.user.id)
+        if not answer:
+            return HttpResponseNotFound()
+        answer = answer[0]
     return render(request,
                   "practice/detail_answer.html",
                   {
@@ -569,12 +596,12 @@ def get_comments(question, params, data):
     else:
         page_offset = page_count if page_offset == -1 else 1
     offset = (page_offset - 1) * limit
-    comments = question.comment_set.order_by('-created_at')[offset:(offset + limit)]
+    comments = question.comment_set.filter(state='Normal').order_by('-created_at')[offset:(offset + limit)]
     return {
         "showing_comments": True,
         "question": question,
         "comments": comments,
-        "page_range": range(1, page_count + 1),
+        "comment_page_range": range(1, page_count + 1),
         "comment_conditions": {
             "page_offset": page_offset,
             "limit": limit,
@@ -644,15 +671,185 @@ def process_comments_in_answer(request, answer_id):
         return render(request, "practice/detail_answer.html", context)
 
 
+def process_new_question_evaluation(request):
+    data = {
+        'evaluation_content': {
+            'label': _('Đánh giá mới'),
+            'value': '',
+            'errors': [],
+        },
+        'comment_content': {
+            'label': _('Bình luận mới'),
+            'value': '',
+            'errors': [],
+        },
+        'error': '',
+    }
+    showing_evaluation = True
+    notification = ''
+    if request.method == 'GET':
+        params = request.GET
+        qid = convert_to_non_negative_int(string=params.get('qid'))
+        question = Question.objects.filter(id=qid,state='Approved')
+        if not question:
+            return HttpResponseNotFound()
+        question = question[0]
+    else:
+        params = request.POST
+        qid = convert_to_non_negative_int(string=params.get('qid'))
+        question = Question.objects.filter(id=qid, state='Approved')
+        if not question:
+            return HttpResponseNotFound()
+        question = question[0]
+        evaluation_content = (request.POST.get('evaluation_content') or '').strip()
+        if evaluation_content:
+            qe = QuestionEvaluation(
+                content=evaluation_content,
+                comment_id=question.id,
+                user_id=request.user.id,
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+
+            qe.save()
+            notification = 'Tạo đánh giá thành công'
+            showing_evaluation = False
+        else:
+            data['evaluation_content']['value'] = evaluation_content
+    if params.get('coffset') and params.get('climit'):
+        context = get_comments(question, {'offset': params.get('coffset'), 'limit': params.get('climit')}, data)
+    else:
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "logout_link": reverse('users:logout'),
+            "change_password_link": reverse('users:change_password'),
+            "question": question,
+            "data": data,
+        }
+    context["showing_evaluation"] = showing_evaluation
+    context["notification"] = notification
+    return render(request, "practice/detail_question.html", context)
+
+
+def process_new_comment_evaluation(request):
+    data = {
+        'evaluation_content': {
+            'label': _('Đánh giá mới'),
+            'value': '',
+            'errors': [],
+        },
+        'error': '',
+    }
+    notification = ''
+    if request.method == 'GET':
+        params = request.GET
+        cid = convert_to_non_negative_int(string=params.get('cid'))
+        comment = Question.objects.filter(id=cid, state='Normal')
+        if not comment:
+            return HttpResponseNotFound()
+        comment = comment[0]
+    else:
+        params = request.POST
+        cid = convert_to_non_negative_int(string=params.get('cid'))
+        comment = Question.objects.filter(id=cid, state='Normal')
+        if not comment:
+            return HttpResponseNotFound()
+        comment = comment[0]
+        evaluation_content = (request.POST.get('evaluation_content') or '').strip()
+        if evaluation_content:
+            ce = CommentEvaluation(
+                content=evaluation_content,
+                comment_id=comment.id,
+                user_id=request.user.id,
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+
+            ce.save()
+            notification = 'Tạo đánh giá thành công'
+    context = {
+        'comment': comment,
+        'notification': notification,
+        'data': data,
+    }
+    return render(request, "practice/new_comment_evaluation.html", context)
+
+
 @ensure_is_not_anonymous_user
 def process_new_evaluation(request):
-    pass
+    if request.method == 'GET':
+        params = request.GET
+    elif request.method == 'POST':
+        params = request.POST
+    else:
+        return HttpResponseBadRequest()
+
+    if 'qid' in params:
+        return process_new_question_evaluation(request)
+    elif 'cid' in params:
+        return process_new_comment_evaluation(request)
+    else:
+        return HttpResponseBadRequest()
 
 
 # ========================================== Admin ====================================================
 @ensure_is_admin
 def process_detail_question_by_admin(request, question_id):
-    pass
+    question = get_object_or_404(Question, pk=question_id)
+    notification = ''
+    if request.method == 'POST':
+        params = request.POST
+        # 1 : Pending -> Approved
+        # 2 : Pending -> Unapproved
+        # 3 : Approved -> Locked
+        action = convert_to_non_negative_int(string=(params.get('action')))
+        if action == 1:
+            if question.state == 'Pending':
+                question.state = 'Approved'
+                question.save()
+                lg = Log(
+                    model_name='Question',
+                    object_id=question_id,
+                    user_id=request.user.id,
+                    content="Pending -> Approved",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+
+                lg.save()
+                notification = 'approved_success'
+        elif action == 2:
+            if question.state == 'Pending':
+                question.state = 'Unapproved'
+                question.save()
+
+                lg = Log(
+                    model_name='Question',
+                    object_id=question_id,
+                    user_id=request.user.id,
+                    content="Pending -> Unapproved",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+
+                lg.save()
+
+                notification = 'unapproved_success'
+        elif action == 3:
+            if question.state == 'Approved':
+                question.state = 'Locked'
+                question.save()
+
+                lg = Log(
+                    model_name='Question',
+                    object_id=question_id,
+                    user_id=request.user.id,
+                    content="Approved -> Locked",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+
+                lg.save()
+
+                notification = 'locked_success'
+        else:
+            return HttpResponseBadRequest()
+        return redirect(to=f'{reverse("practice:view_detail_question", args=[question_id])}?notification={notification}')
 
 
 @ensure_is_admin

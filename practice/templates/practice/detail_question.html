@@ -200,14 +200,42 @@
             <a class="button" href="{{data.back_url}}">Trở lại trang trước</a>
             {% endif %}
         </div>
+        {% if question.state != 'Approved' %}
+            {% if question.user.id == user.id %}
+                <p>Trạng thái: {{question.get_state_display}}</p>
+            {% elif user.role == 'Admin' %}
+                <p>Trạng thái: {{question.get_state_display}}</p>
+            {% endif %}
+        {% endif %}
+        {% if question.state == 'Pending' and user.role == 'Admin' %}
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="1"/>
+                    <button type="submit">Duyệt</button>
+                </form>
+                <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="2"/>
+                    <button type="submit">Không duyệt</button>
+                </form>
+            </div>
+        {% endif %}
+        {% if question.state == 'Approved' and user.role == 'Admin' %}
+             <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                {% csrf_token %}
+                 <input type="hidden" name="action" value="3"/>
+                <button type="submit">Khóa</button>
+            </form>
+        {% endif %}
         {% if past_answers %}
-        <p>Các câu trả lời trước đó:</p>
-        {% for past_answer in past_answers %}
-        <a href="{% url 'practice:view_detail_answer' past_answer.id %}">{{past_answer.created_at|date:"d/m/Y H:i:s"}}
-            {{suffix_utc}}</a>
-        {% endfor %}
+            <p>Các câu trả lời trước đó:</p>
+            {% for past_answer in past_answers %}
+            <a href="{% url 'practice:view_detail_answer' past_answer.id %}">{{past_answer.created_at|date:"d/m/Y H:i:s"}}
+                {{suffix_utc}}</a>
+            {% endfor %}
         {% else %}
-        <p>Bạn chưa trả lời câu hỏi này trước đây.</p>
+            <p>Bạn chưa trả lời câu hỏi này trước đây.</p>
         {% endif %}
     </aside>
     <main style="height:fit-content;">
@@ -238,209 +266,243 @@
             {% endif %}
         </div>
         <div>
-            <a class="button" href="{% url 'practice:process_new_answer' question.id %}">Trả lời</a>
-            {% if not showing_comments %}
-            <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">Xem bình luận</a>
-            {% else %}
-            <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng xem bình luận</a>
-            {% endif %}
-            <a class="button" href="">Đánh giá</a>
-        </div>
-        {% if showing_comments %}
-        <div style="border-top:1px solid #000000;padding-top:8px;display:flex;flex-direction:column;gap:8px;">
-            <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
-                {% csrf_token %}
-                {% if comment_conditions.page_offset == 1 %}
-                <textarea autofocus
-                          id="id_comment_content"
-                          name="comment_content"
-                          placeholder="{{data.comment_content.label}}"
-                          title="{{data.comment_content.label}}">{{data.comment_content.value}}</textarea>
+            {% if question.state == 'Approved' %}
+                <a class="button" href="{% url 'practice:process_new_answer' question.id %}">Trả lời</a>
+                {% if not showing_comments %}
+                    <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">Xem bình luận</a>
+                    {% if not showing_evaluation %}
+                        <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}">Tạo đánh giá</a>
+                    {% else %}
+                        <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng tạo Đánh giá</a>
+                    {% endif %}
                 {% else %}
-                <textarea id="id_comment_content"
-                          name="comment_content"
-                          placeholder="{{data.comment_content.label}}"
-                          title="{{data.comment_content.label}}">{{data.comment_content.value}}</textarea>
+                    <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng xem bình luận</a>
+                    {% if not showing_evaluation %}
+                        <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}&coffset={{comment_conditions.page_offset}}&climit={{comment_conditions.limit}}">Tạo đánh giá</a>
+                    {% else %}
+                        <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">Đóng tạo Đánh giá</a>
+                    {% endif %}
                 {% endif %}
-                <div style="display:flex;gap:4px;">
-                    <button>OK</button>
-                    {% for error in data.comment_content.errors %}
-                        <p class="error" ref="id_comment_content">{{error}}</p>
-                    {% endfor %}
+            {% endif %}
+        </div>
+        {% if question.state == 'Approved' %}
+            {% if showing_evaluation %}
+                <div>
+                    <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="coffset" value="{{comment_conditions.page_offset}}"/>
+                        <input type="hidden" name="climit" value="{{comment_conditions.limit}}"/>
+                        <textarea autofocus
+                              id="id_evaluation_content"
+                              name="evaluation_content"
+                              placeholder="{{data.evaluation_content.label}}"
+                              title="{{data.evaluation_content.label}}">{{data.evaluation_content.value}}</textarea>
+                        <div style="display:flex;gap:4px;">
+                            <button type="submit">OK</button>
+                            {% for error in data.evaluation_content.errors %}
+                                <p class="error" ref="id_evaluation_content">{{error}}</p>
+                            {% endfor %}
+                        </div>
+                    </form>
                 </div>
-            </form>
-            <div style="display:flex;justify-content:space-between;gap:8px;">
-                <form method="GET"
-                      action="{% url 'practice:process_comments_in_question' question.id %}"
-                      style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;">
-                    <input type="hidden" name="offset" value="{{comment_conditions.page_offset}}"/>
-                    <select name="limit" title="Chọn số bình luận trên mỗi trang">
-                        {% if comment_conditions.limit == 8 %}
-                            <option value="4">4 bình luận/trang</option>
-                            <option value="8" selected>8 bình luận/trang</option>
-                            <option value="16">16 bình luận/trang</option>
-                        {% elif comment_conditions.limit == 16 %}
-                            <option value="4">4 bình luận/trang</option>
-                            <option value="8">8 bình luận/trang</option>
-                            <option value="16" selected>16 bình luận/trang</option>
-                        {% else %}
-                            <option value="4" selected>4 bình luận/trang</option>
-                            <option value="8">8 bình luận/trang</option>
-                            <option value="16">16 bình luận/trang</option>
-                        {% endif %}
-                    </select>
-                    <button type="submit">Áp dụng</button>
+            {% endif %}
+            {% if showing_comments %}
+            <h2>Phần bình luận</h2>
+            <div style="border-top:1px solid #000000;padding-top:8px;display:flex;flex-direction:column;gap:8px;">
+                <form method="POST" action="{% url 'practice:process_comments_in_question' question.id %}" style="display:flex;flex-direction:column;gap:4px;">
+                    {% csrf_token %}
+                    {% if comment_conditions.page_offset == 1 %}
+                    <textarea autofocus
+                              id="id_comment_content"
+                              name="comment_content"
+                              placeholder="{{data.comment_content.label}}"
+                              title="{{data.comment_content.label}}">{{data.comment_content.value}}</textarea>
+                    {% else %}
+                    <textarea id="id_comment_content"
+                              name="comment_content"
+                              placeholder="{{data.comment_content.label}}"
+                              title="{{data.comment_content.label}}">{{data.comment_content.value}}</textarea>
+                    {% endif %}
+                    <div style="display:flex;gap:4px;">
+                        <button type="submit">OK</button>
+                        {% for error in data.comment_content.errors %}
+                            <p class="error" ref="id_comment_content">{{error}}</p>
+                        {% endfor %}
+                    </div>
                 </form>
-                <nav id="id_comments_nav">
-                    <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">&lt;&lt;</a>
-                    <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={% if comment_conditions.page_offset > 1 %}{{comment_conditions.page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
-
-                    {% if page_range|length > 4 %}
-                    {% if comment_conditions.page_offset == 1 or comment_conditions.page_offset == page_range|length %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    ...
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% elif comment_conditions.page_offset == 2 %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    <a class="{% if comment_conditions.page_offset == 3 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=3">3</a>
-                    {% if page_range|length > 5 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% elif comment_conditions.page_offset == page_range|length|add:-1 %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    {% if page_range|length > 5 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% elif comment_conditions.page_offset == 3 %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    <a class="{% if comment_conditions.page_offset == 3 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=3">3</a>
-                    <a class="{% if comment_conditions.page_offset == 4 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=4">4</a>
-                    {% if page_range|length > 6 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% elif comment_conditions.page_offset == page_range|length|add:-2 %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    {% if page_range|length > 6 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-3 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-3}}">{{page_range|length|add:-3}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% else %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
-                    {% if page_range|length > 7 and comment_conditions.page_offset > 4 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:-1}}">{{comment_conditions.page_offset|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset}}">{{comment_conditions.page_offset}}</a>
-                    <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset|add:1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:1}}">{{comment_conditions.page_offset|add:1}}</a>
-                    {% if page_range|length > 7 and comment_conditions.page_offset < page_range|length|add:-3 %}
-                    ...
-                    {% endif %}
-                    <a class="{% if comment_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                    <a class="{% if comment_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                    {% endif %}
-                    {% else %}
-                    {% for page_offset in page_range %}
-                    <a class="{% if comment_conditions.page_offset == page_offset %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_offset}}">{{page_offset}}</a>
-                    {% empty %}
-                    <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
-                       href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
-                    {% endfor %}
-                    {% endif %}
-
-                    <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:1}}">&gt;</a>
-                    <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=-1">&gt;&gt;</a>
-
+                <div style="display:flex;justify-content:space-between;gap:8px;">
                     <form method="GET"
                           action="{% url 'practice:process_comments_in_question' question.id %}"
-                          style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;padding-left:12px;">
-                        <input type="hidden" name="tag" value="{{comment_conditions.tag_id}}">
-                        {% if comment_conditions.page_offset != 1 %}
-                            <input type="number" min="1" max="{{page_range|length}}" step="1"
-                               title="Nhập số thứ tự trang muốn chuyển đến"
-                               style="width:40px;text-align:center;" id="id_comment_offset"
-                               name="offset"
-                               value="{{comment_conditions.page_offset}}"/>
-                        {% else %}
-                            <input autofocus type="number" min="1" max="{{page_range|length}}" step="1"
-                               title="Nhập số thứ tự trang muốn chuyển đến"
-                               style="width:40px;text-align:center;" id="id_comment_offset"
-                               name="offset"
-                               value="{{comment_conditions.page_offset}}"/>
-                        {% endif %}
-                        <button type="submit">Chuyển</button>
+                          style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;">
+                        <input type="hidden" name="offset" value="{{comment_conditions.page_offset}}"/>
+                        <select name="limit" title="Chọn số bình luận trên mỗi trang">
+                            {% if comment_conditions.limit == 8 %}
+                                <option value="4">4 bình luận/trang</option>
+                                <option value="8" selected>8 bình luận/trang</option>
+                                <option value="16">16 bình luận/trang</option>
+                            {% elif comment_conditions.limit == 16 %}
+                                <option value="4">4 bình luận/trang</option>
+                                <option value="8">8 bình luận/trang</option>
+                                <option value="16" selected>16 bình luận/trang</option>
+                            {% else %}
+                                <option value="4" selected>4 bình luận/trang</option>
+                                <option value="8">8 bình luận/trang</option>
+                                <option value="16">16 bình luận/trang</option>
+                            {% endif %}
+                        </select>
+                        <button type="submit">Áp dụng</button>
                     </form>
-                </nav>
-            </div>
-            <div>
-                {% for comment in comments %}
-                    <div style="display:flex;flex-direction:column;border-top:2px solid gray;padding:4px;">
-                        <p>{{comment.content}}</p>
-                        <div style="display:flex;justify-content:space-between;">
-                            <div>
-                                <a href="">Đánh giá</a>
-                            </div>
-                            <div style="display:flex;flex-direction:column;">
-                                <span>{{comment.user.name}} <em>{{comment.user.code}}</em></span>
-                                <span>{{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
+                    <nav id="id_comments_nav">
+                        <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">&lt;&lt;</a>
+                        <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={% if comment_conditions.page_offset > 1 %}{{comment_conditions.page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
+
+                        {% if comment_page_range|length > 4 %}
+                        {% if comment_conditions.page_offset == 1 or comment_conditions.page_offset == comment_page_range|length %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        ...
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% elif comment_conditions.page_offset == 2 %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        <a class="{% if comment_conditions.page_offset == 3 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=3">3</a>
+                        {% if comment_page_range|length > 5 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% elif comment_conditions.page_offset == comment_page_range|length|add:-1 %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        {% if comment_page_range|length > 5 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-2}}">{{comment_page_range|length|add:-2}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% elif comment_conditions.page_offset == 3 %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        <a class="{% if comment_conditions.page_offset == 3 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=3">3</a>
+                        <a class="{% if comment_conditions.page_offset == 4 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=4">4</a>
+                        {% if comment_page_range|length > 6 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% elif comment_conditions.page_offset == comment_page_range|length|add:-2 %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        {% if comment_page_range|length > 6 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-3 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-3}}">{{comment_page_range|length|add:-3}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-2}}">{{comment_page_range|length|add:-2}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% else %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        <a class="{% if comment_conditions.page_offset == 2 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=2">2</a>
+                        {% if comment_page_range|length > 7 and comment_conditions.page_offset > 4 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:-1}}">{{comment_conditions.page_offset|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset}}">{{comment_conditions.page_offset}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_conditions.page_offset|add:1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:1}}">{{comment_conditions.page_offset|add:1}}</a>
+                        {% if comment_page_range|length > 7 and comment_conditions.page_offset < comment_page_range|length|add:-3 %}
+                        ...
+                        {% endif %}
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length|add:-1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length|add:-1}}">{{comment_page_range|length|add:-1}}</a>
+                        <a class="{% if comment_conditions.page_offset == comment_page_range|length %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_page_range|length}}">{{comment_page_range|length}}</a>
+                        {% endif %}
+                        {% else %}
+                        {% for page_offset in comment_page_range %}
+                        <a class="{% if comment_conditions.page_offset == page_offset %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{page_offset}}">{{page_offset}}</a>
+                        {% empty %}
+                        <a class="{% if comment_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=1">1</a>
+                        {% endfor %}
+                        {% endif %}
+
+                        <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset={{comment_conditions.page_offset|add:1}}">&gt;</a>
+                        <a href="{% url 'practice:process_comments_in_question' question.id %}?limit={{comment_conditions.limit}}&offset=-1">&gt;&gt;</a>
+
+                        <form method="GET"
+                              action="{% url 'practice:process_comments_in_question' question.id %}"
+                              style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;padding-left:12px;">
+                            <input type="hidden" name="tag" value="{{comment_conditions.tag_id}}">
+                            {% if comment_conditions.page_offset != 1 %}
+                                <input type="number" min="1" max="{{comment_page_range|length}}" step="1"
+                                   title="Nhập số thứ tự trang muốn chuyển đến"
+                                   style="width:40px;text-align:center;" id="id_comment_offset"
+                                   name="offset"
+                                   value="{{comment_conditions.page_offset}}"/>
+                            {% else %}
+                                <input autofocus type="number" min="1" max="{{comment_page_range|length}}" step="1"
+                                   title="Nhập số thứ tự trang muốn chuyển đến"
+                                   style="width:40px;text-align:center;" id="id_comment_offset"
+                                   name="offset"
+                                   value="{{comment_conditions.page_offset}}"/>
+                            {% endif %}
+                            <button type="submit">Chuyển</button>
+                        </form>
+                    </nav>
+                </div>
+                <div>
+                    {% for comment in comments %}
+                        <div style="display:flex;flex-direction:column;border-top:2px solid gray;padding:4px;">
+                            <p>{{comment.content}}</p>
+                            <div style="display:flex;justify-content:space-between;">
+                                <div>
+                                    <a href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">Đánh giá</a>
+                                </div>
+                                <div style="display:flex;flex-direction:column;">
+                                    <span>{{comment.user.name}} <em>{{comment.user.code}}</em></span>
+                                    <span>{{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {% empty %}
-                    <p class="native">Hiện chưa có bình luận nào về câu hỏi này</p>
-                {% endfor %}
+                    {% empty %}
+                        <p class="native">Hiện chưa có bình luận nào về câu hỏi này</p>
+                    {% endfor %}
+                </div>
             </div>
-        </div>
+            {% endif %}
         {% endif %}
     </main>
 </div>

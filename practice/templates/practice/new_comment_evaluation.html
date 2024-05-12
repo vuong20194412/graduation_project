@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="vi-vn">
+<head>
+    <meta charset="UTF-8">
+    <title>Đánh giá bình luận</title>
+    <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
+    <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
+
+    <style>
+        body {
+            box-sizing: border-box;
+            margin: 0;
+            height: 100vh;
+            width: 100%;
+            max-width: 100vw;
+            background-color: #E6FEF5;
+        }
+
+        h2:not(.native) {
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        p:not(.native) {
+            box-sizing: border-box;
+            margin: 0;
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
+
+    <style>
+        #id_content {
+            box-sizing: border-box;
+            width: 100%;
+            max-height: calc(100% - 48px);
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+        }
+        aside {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            background-color: #FFFFFF;
+            box-shadow: 0px 4px 4px 0px #B3B3B3;
+            height: fit-content;
+            max-height: 100%;
+        }
+        aside.left_aside {
+            width: 160px;
+            max-width: 160px;
+            min-width: 160px;
+            padding-bottom: 24px;
+        }
+        aside.left_aside>nav {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-width: 140px;
+            align-self: center;
+            gap: 4px;
+            padding: 4px 0;
+        }
+        aside.left_aside>nav>a {
+            box-sizing: border-box;
+            max-width: 100%;
+            height: 40px;
+            border-bottom: 1px solid #000000;
+            font-weight: bold;
+            font-size: 16px;
+            color: #000000;
+            display: inline-block;
+            line-height: 40px;
+            text-decoration: none;
+            padding: 0 10px;
+        }
+        aside.left_aside>nav>a:visited {
+            color: #000000;
+        }
+        aside.left_aside>nav>a.selected_a {
+            border-bottom-color: #04AE70;
+            border-bottom-width: 2px;
+            color: #04AE70;
+        }
+        aside.left_aside>nav>a:not(.selected_a):hover {
+            border-bottom-color: #04AE70;
+            border-bottom-width: 2px;
+            color: #04AE70;
+            opacity: 0.8;
+        }
+        aside.left_aside>nav>a.selected_a:hover {
+            opacity: 0.6;
+        }
+
+        aside.right_aside {
+            width: 240px;
+            max-width: 240px;
+            min-width: 240px;
+        }
+
+        main {
+            box-sizing: border-box;
+            width: calc(100% - 416px);
+            max-width: calc(100% - 416px);
+            min-width: calc(100% - 416px);
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+            background-color: #FFFFFF;
+            box-shadow: 0px 4px 4px 0px #B3B3B3;
+        }
+
+        main>nav {
+            box-sizing: border-box;
+            display: flex;
+            height: 40px;
+            gap: 4px;
+            align-items: center;
+        }
+
+        main>nav>a {
+            box-sizing: border-box;
+            height: 36px;
+            width: 36px;
+            border: 1px solid #000000;
+            border-radius: 4px;
+            background-color: #E7F2FE;
+            text-decoration: none;
+            color: #000000;
+            display: inline-block;
+            text-align: center;
+            line-height: 34px;
+        }
+
+        main>nav>a:visited {
+            color: #000000;
+        }
+
+        main>nav>a.selected_a {
+            border-width: 2px;
+            line-height: 32px;
+            background-color: #6CB0F9;
+            color: #FFFFFF;
+        }
+
+        main>nav>a:not(.selected_a):hover {
+            border-width: 2px;
+            line-height: 32px;
+            background-color: #6CB0F9;
+            opacity: 0.8;
+            color: #FFFFFF;
+        }
+
+        main>nav>a.selected_a:hover {
+            opacity: 0.6;
+        }
+        p {
+            font-family: none;
+        }
+        label {
+            font-size: 13px;
+            font-family: none;
+        }
+        span {
+            font-size: 11px;
+            font-family: none;
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
+</head>
+<body>
+    {% if notification %}
+        <dialog id="show_notification_dialog">
+            <div>
+                <h2 class="native">Thông báo</h2>
+                <p class="native">{{notification}}</p>
+                <a autofocus class="button" href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">OK</a>
+            </div>
+        </dialog>
+    {% endif %}
+
+    {% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link  %}
+
+    <div id="id_content" style="justify-content:center;">
+        {% if suffix_utc %}
+            <input type="hidden" id="timezone" name="timezone" value="+00:00" />
+        {% endif %}
+        <main style="height:fit-content;">
+            <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
+                {% csrf_token %}
+                <input type="hidden" name="cid" value="{{comment.id}}">
+                <div style="display:flex;justify-content: space-between;padding:4px 0;">
+                    <a class="button" href="{% url 'practice:view_detail_question' comment.question.id %}">Tới trang chi tiết câu hỏi</a>
+                </div>
+                <div>
+                    Bình luận (tác giả: {{comment.user.name}} <em>{{comment.user.code}}</em>):
+                </div>
+                <div>
+                    <p style="padding-left:8px;word-break:break-word;">{{comment.content}}</p>
+                </div>
+                <div>
+                    <textarea autofocus
+                      id="id_evaluation_content"
+                      name="evaluation_content"
+                      placeholder="{{data.evaluation_content.label}}"
+                      title="{{data.evaluation_content.label}}">{{data.evaluation_content.value}}</textarea>
+                {% for error in data.evaluation_content.errors %}
+                    <p class="error" ref="id_evaluation_content">{{error}}</p>
+                {% endfor %}
+                </div>
+                <div>
+                    <button type="submit">OK</button>
+                </div>
+            </form>
+        </main>
+    </div>
+    <!-- end content -->
+</body>
+</html>

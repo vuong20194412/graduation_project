@@ -26,8 +26,7 @@ class Question(models.Model):
 
     def upload_to(self, filename):
         # "images/practice/%Y%m%d%H%M%S%f" + removed_#_code + filename
-        code0 = getattr(self.user, 'code')
-        code = self.user.code[1:]
+        code = getattr(self.user, 'code', '#')[1:]
         return f"images/practice/{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{code}/" + filename
 
     image = models.ImageField(verbose_name=_('Tên tệp hình ảnh'), upload_to=upload_to, )
@@ -50,7 +49,12 @@ class Answer(models.Model):
 
 
 class Comment(models.Model):
+    STATE_CHOICES = {
+        'Normal': _('Bình thường'),
+        'Locked': _('Đã khóa'),
+    }
     content = models.TextField(verbose_name=_('Nội dung'), default='')
+    state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
     question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
@@ -59,12 +63,18 @@ class Comment(models.Model):
     objects = models.Manager()
 
 
-class Evaluation(models.Model):
-    TYPE_CHOICES = {
-        'Question evaluation': _('Đánh giá câu hỏi'),
-        'Comment evaluation': _('Đánh giá bình luận'),
-    }
-    type = models.CharField(verbose_name=_('Loại đánh giá'), max_length=255, choices=TYPE_CHOICES, )
+class QuestionEvaluation(models.Model):
+    question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
+    user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
+    content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
+    # datetime.datetime.now(datetime.timezone.utc)
+    created_at = models.DateTimeField(_('Thời điểm tạo'), )
+
+    objects = models.Manager()
+
+
+class CommentEvaluation(models.Model):
+    comment = models.ForeignKey(verbose_name=_('Bình luận'), to=Comment, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
     # datetime.datetime.now(datetime.timezone.utc)
