@@ -76,6 +76,16 @@ def process_sign_up(request):
         else:
             _data['password']['value'] = password
 
+        name = params.get('name')
+        if not name:
+            first_invalid = 'name'
+            _data['name']['errors'].append(_('Trường này không được để trống.'))
+        else:
+            _data['name']['value'] = name
+            if len(name) > 255:
+                first_invalid = 'name'
+                _data['name']['errors'].append(_('Trường này không được nhập quá 255 ký tự.'))
+
         email = params.get('email')
         if not email:
             first_invalid = 'email'
@@ -98,16 +108,6 @@ def process_sign_up(request):
             elif User.objects.filter(email=User.objects.normalize_email(email)):
                 first_invalid = 'email'
                 _data['email']['errors'].append('Email đã được đăng ký với tài khoản khác.')
-
-        name = params.get('name')
-        if not name:
-            first_invalid = 'name'
-            _data['name']['errors'].append(_('Trường này không được để trống.'))
-        else:
-            _data['name']['value'] = name
-            if len(name) > 255:
-                first_invalid = 'name'
-                _data['name']['errors'].append(_('Trường này không được nhập quá 255 ký tự.'))
 
         if first_invalid:
             _data['autofocus'] = first_invalid

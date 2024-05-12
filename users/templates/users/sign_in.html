@@ -47,6 +47,12 @@
             box-sizing: border-box;
             margin: 0;
         }
+        input {
+            min-width: 182px;
+        }
+        p.error {
+            max-width: 182px;
+        }
         p.error.apply {
             color: var(--p-color);
         }
@@ -71,7 +77,8 @@
         <form method="post">
             <h2>ĐĂNG NHẬP</h2>
             {% csrf_token %}
-            <input type="text"
+            <div>
+                <input type="text"
                    spellcheck="false"
                    id="id_email"
                    name="email"
@@ -81,82 +88,34 @@
                    placeholder="{{data.email.label}}"
                    title="{{data.email.label}}"
                    class="{% if data.email.errors %}error{% endif %}"/>
-            {% for error in data.email.errors %}
-                <p class="error" ref="id_email">{{error}}</p>
-            {% endfor %}
-
-            <input type="password"
+                {% for error in data.email.errors %}
+                    <p class="error" ref="id_email">{{error}}</p>
+                {% endfor %}
+            </div>
+            <div>
+                <input type="password"
                    id="id_password"
                    name="password"
                    required
                    placeholder="{{data.password.label}}"
                    title="{{data.password.label}}"
                    class="{%if data.password.errors %} error {% endif %}"/>
-            {% for error in data.password.errors %}
-                <p class="error" ref="id_password">{{error}}</p>
-            {% endfor %}
-
+                {% for error in data.password.errors %}
+                    <p class="error" ref="id_password">{{error}}</p>
+                {% endfor %}
+            </div>
             {% if data.error %}
                 <p ref>{{data.error}}</p>
             {% endif %}
-
-            <div style="position:relative;">
+            <div>
                 <button type="submit">Đăng nhập</button>
-                <p style="position:absolute;top:0;right:-124px;width:75px;"><a href="{% url 'users:sign_up' %}">Tới trang đăng ký</a></p>
+            </div>
+            <div>
+                Nếu chưa có tài khoản, <br>đăng ký tại <a href="{% url 'users:sign_up' %}">đây</a>.
             </div>
         </form>
     </main>
 
-    <script>
-        function autoFocusInput() {
-            const autofocus_input_element = document.querySelector("input#id_{{data.autofocus}}");
-            if (autofocus_input_element) {
-                autofocus_input_element.classList.remove('error');
-                autofocus_input_element.focus();
-                const value = autofocus_input_element.value;
-                autofocus_input_element.value = '';
-                autofocus_input_element.value = value;
-                for (const p_element of document.querySelectorAll("p.error[ref=id_{{data.autofocus}}]")) {
-                    p_element.classList.remove('error');
-                }
-            }
-        }
-
-        function addEventListenerInput() {
-            for (const input_element of document.getElementsByTagName("input")) {
-                input_element.addEventListener("invalid", (event) => {
-                    event.target.setCustomValidity("");
-                    event.target.title = "";
-                    if (event.target.validity.valueMissing) {
-                        event.target.setCustomValidity("Vui lòng điền vào trường này.");
-                        event.target.title = "Vui lòng điền vào trường này.";
-                    }
-                });
-                input_element.addEventListener("input", (event) => {
-                    event.target.setCustomValidity("");
-                    event.target.title = event.target.placeholder;
-                });
-                input_element.addEventListener("focusin", (event) => {
-                    event.target.classList.remove('error');
-                    for (const p_element of document.querySelectorAll(`p.error[ref=${event.target.id}]`)) {
-                        p_element.classList.remove('error');
-                    }
-                });
-            }
-        }
-
-        document.addEventListener("DOMContentLoaded", (event) => {
-            for (const input_element of document.querySelectorAll("input")) {
-                input_element.classList.add('apply');
-            }
-            for (const p_element of document.querySelectorAll("p.error[ref]")) {
-                p_element.classList.add('apply');
-            }
-            if (!document.querySelector("#show_notification_dialog")) {
-                autoFocusInput();
-            }
-            addEventListenerInput();
-        });
-    </script>
+    <script src="{% static 'users\js\input.js' %}"></script>
 </body>
 </html>

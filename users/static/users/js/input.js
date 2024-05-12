@@ -1,12 +1,12 @@
 function autoFocusInput() {
-    const autofocus_input_element = document.querySelector("input#id_{{data.autofocus}}");
+    const autofocus_input_element = document.querySelector("input:not([type=hidden]).error");
     if (autofocus_input_element) {
         autofocus_input_element.classList.remove('error');
         autofocus_input_element.focus();
         const value = autofocus_input_element.value;
         autofocus_input_element.value = '';
         autofocus_input_element.value = value;
-        for (const p_element of document.querySelectorAll("p.error[ref=id_{{data.autofocus}}]")) {
+        for (const p_element of document.querySelectorAll(`p.error[ref=${autofocus_input_element.id}]`)) {
             p_element.classList.remove('error');
         }
     }
@@ -32,18 +32,16 @@ function addEventListenerInput() {
                 p_element.classList.remove('error');
             }
         });
-        input_element.addEventListener("focusout", (event) => {
-            if (event.target.value) {
-                event.target.classList.add('not_empty');
-            }
-            else {
-                event.target.classList.remove('not_empty');
-            }
-        });
     }
 }
 
 document.addEventListener("DOMContentLoaded", (event) => {
+    for (const input_element of document.querySelectorAll("input")) {
+        input_element.classList.add('apply');
+    }
+    for (const p_element of document.querySelectorAll("p.error[ref]")) {
+        p_element.classList.add('apply');
+    }
     if (!document.querySelector("#show_notification_dialog")) {
         autoFocusInput();
     }

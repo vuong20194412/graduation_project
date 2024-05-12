@@ -3,6 +3,7 @@
 <html lang="vi-vn">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xem danh sách câu hỏi</title>
     <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
     <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
@@ -11,7 +12,7 @@
         body {
             box-sizing: border-box;
             margin: 0;
-            height: 100vh;
+            min-height: 100vh;
             width: 100%;
             max-width: 100vw;
             background-color: #E6FEF5;
@@ -26,6 +27,17 @@
             box-sizing: border-box;
             margin: 0;
         }
+        p {
+            font-family: none;
+        }
+        label {
+            font-size: 13px;
+            font-family: none;
+        }
+        span {
+            font-size: 11px;
+            font-family: none;
+        }
     </style>
     <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
     <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
@@ -34,97 +46,196 @@
         #id_content {
             box-sizing: border-box;
             width: 100%;
-            max-height: calc(100% - 48px);
-            padding: 8px;
-            display: flex;
-            gap: 8px;
-        }
-        aside {
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 10px;
-            background-color: #FFFFFF;
-            box-shadow: 0px 4px 4px 0px #B3B3B3;
-            height: fit-content;
-            max-height: 100%;
+            display: grid;
+            grid-template-columns: 12.5% 60% 27.5%;
         }
         aside.left_aside {
-            width: 160px;
-            max-width: 160px;
-            min-width: 160px;
-            padding-bottom: 24px;
+          box-sizing: border-box;
+          grid-column-start: 1;
+          grid-column-end: 2;
+          display: flex;
+          flex-direction: column;
+          padding: 8px 0px 8px 8px;
+          background-color: inherit;
         }
-        aside.left_aside>nav {
+        main {
+          box-sizing: border-box;
+          grid-column-start: 2;
+          grid-column-end: 3;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          padding: 8px 8px 8px 8px;
+          background-color: inherit;
+        }
+        aside.right_aside {
+          box-sizing: border-box;
+          grid-column-start: 3;
+          grid-column-end: 4;
+          display: flex;
+          flex-direction: column;
+          padding: 8px 8px 8px 0px;
+          background-color: inherit;
+        }
+        @media only screen and (max-width:800px) {
+          /* For tablets: */
+          aside.left_aside {
+            order: 1;
+            grid-column-start: 1;
+            grid-column-end: 2;
+            grid-row-start: 1;
+            grid-row-end: 3;
+            flex-direction: column;
+          }
+          main {
+            grid-column-start: 2;
+            grid-column-end: 4;
+            grid-row-start: 2;
+            grid-row-end: 3;
+            flex-direction: column;
+          }
+          aside.right_aside {
+            order: 2;
+            grid-column-start: 2;
+            grid-column-end: 4;
+            grid-row-start: 1;
+            grid-row-end: 2;
+            flex-direction: row;
+            padding: 8px 8px 8px 8px;
+          }
+        }
+        @media only screen and (max-width:500px) {
+          /* For mobile phones: */
+          aside.left_aside {
+            order: 1;
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 1;
+            grid-row-end: 2;
+            flex-direction: row;
+            padding: 8px 8px 8px 8px;
+          }
+          main {
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 3;
+            grid-row-end: 4;
+            flex-direction: column;
+          }
+          aside.right_aside {
+            order: 2;
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 2;
+            grid-row-end: 3;
+            flex-direction: column;
+            padding: 8px 8px 8px 8px;
+          }
+        }
+    </style>
+    <style>
+        aside.left_aside>.in_left_aside {
+            box-sizing: border-box;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #FFFFFF;
+            box-shadow: 0px 4px 4px 0px #B3B3B3;
+        }
+        aside.left_aside>.in_left_aside>nav {
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            max-width: 140px;
+            max-width: 100%;
+            width: fit-content;
             align-self: center;
-            gap: 4px;
-            padding: 4px 0;
         }
-        aside.left_aside>nav>a {
+        aside.left_aside>.in_left_aside>nav>a {
             box-sizing: border-box;
             max-width: 100%;
             height: 40px;
             border-bottom: 1px solid #000000;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 13px;
             color: #000000;
             display: inline-block;
             line-height: 40px;
             text-decoration: none;
             padding: 0 10px;
         }
-        aside.left_aside>nav>a:visited {
+        aside.left_aside>.in_left_aside>nav>a:visited {
             color: #000000;
         }
-        aside.left_aside>nav>a.selected_a {
+        aside.left_aside>.in_left_aside>nav>a.selected_a {
             border-bottom-color: #04AE70;
             border-bottom-width: 2px;
             color: #04AE70;
         }
-        aside.left_aside>nav>a:not(.selected_a):hover {
+        aside.left_aside>.in_left_aside>nav>a:not(.selected_a):hover {
             border-bottom-color: #04AE70;
             border-bottom-width: 2px;
             color: #04AE70;
             opacity: 0.8;
         }
-        aside.left_aside>nav>a.selected_a:hover {
+        aside.left_aside>.in_left_aside>nav>a.selected_a:hover {
             opacity: 0.6;
         }
-
-        aside.right_aside {
-            width: 240px;
-            max-width: 240px;
-            min-width: 240px;
+        aside.left_aside>.in_left_aside>nav>a + aside.left_aside>.in_left_aside>nav>a {
+            margin-top: 4px;
         }
-
-        main {
+        @media only screen and (max-width:500px) {
+          /* For mobile phones: */
+          aside.left_aside>.in_left_aside {
+            flex-direction: row;
+          }
+          aside.left_aside>.in_left_aside>nav {
+            flex-direction: row;
+            width: 100%;
+            max-width: 100%;
+            min-width: 100%;
+            overflow-x: auto;
+          }
+          aside.left_aside>.in_left_aside>nav>a {
+            min-width: fit-content;
+            max-width: fit-content;
+          }
+          aside.left_aside>.in_left_aside>nav>a + aside.left_aside>.in_left_aside>nav>a {
+            margin-top: 0px;
+            margin-left: 4px;
+          }
+          aside.left_aside>.in_left_aside>nav>hr {
+            display: none;
+          }
+        }
+    </style>
+    <style>
+        main>.in_main {
             box-sizing: border-box;
-            width: calc(100% - 416px);
-            max-width: calc(100% - 416px);
-            min-width: calc(100% - 416px);
-            max-height: 100%;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            padding: 10px;
             background-color: #FFFFFF;
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
-
-        main>nav {
+        main>.in_main>nav {
             box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
             display: flex;
-            height: 40px;
-            gap: 4px;
+            height: 48px;
             align-items: center;
+            padding: 4px 8px;
+            gap: 4px;
         }
-
-        main>nav>a {
+        main>.in_main .question_addition {
+            box-sizing: border-box;
+            height: fit-content;
+            display: grid;
+            grid-template-columns: 25% 75%;
+            border-top: 1px outset #000000;
+            padding: 2px;
+        }
+        main>.in_main>nav>a {
             box-sizing: border-box;
             height: 36px;
             width: 36px;
@@ -137,39 +248,84 @@
             text-align: center;
             line-height: 34px;
         }
-
-        main>nav>a:visited {
+        main>.in_main>nav>a:visited {
             color: #000000;
         }
-
-        main>nav>a.selected_a {
+        main>.in_main>nav>a.selected_a {
             border-width: 2px;
             line-height: 32px;
             background-color: #6CB0F9;
             color: #FFFFFF;
         }
-
-        main>nav>a:not(.selected_a):hover {
+        main>.in_main>nav>a:not(.selected_a):hover {
             border-width: 2px;
             line-height: 32px;
             background-color: #6CB0F9;
             opacity: 0.8;
             color: #FFFFFF;
         }
-
-        main>nav>a.selected_a:hover {
+        main>.in_main>nav>a.selected_a:hover {
             opacity: 0.6;
         }
-        p {
-            font-family: none;
+        #limit_question {
+            box-sizing: border-box;
+            min-width: 160px;
+            height: 40px;
+            border-radius: 6px;
+            border: 1px solid #000000;
+            position: relative;
         }
-        label {
-            font-size: 13px;
-            font-family: none;
+        #limit_question>form {
+            margin-bottom: 0;
+            min-width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 4px;
+            background-color: #FFFFFF;
+            z-index: 999999;
+            position: absolute;
+            left: 0;
+            border: 1px solid #000000;
+            border-radius: 6px;
+            box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
-        span {
-            font-size: 11px;
-            font-family: none;
+        #limit_question:not(:active):not(:focus):not(:focus-within):not(:hover)>form {
+            display: none;
+        }
+    </style>
+    <style>
+        aside.right_aside>.in_right_aside {
+            box-sizing: border-box;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #FFFFFF;
+            box-shadow: 0px 4px 4px 0px #B3B3B3;
+        }
+        aside.right_aside>.in_right_aside>form {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-width: 100%;
+            width: fit-content;
+            align-self: center;
+            gap: 8px;
+            margin-bottom: 0;
+            padding: 8px;
+        }
+        @media only screen and (max-width:800px) {
+          /* For tablets: */
+          aside.left_aside>.in_right_aside {
+            flex-direction: row;
+          }
+          aside.right_aside>.in_right_aside>form {
+            flex-direction: row;
+            width: 100%;
+            max-width: 100%;
+            min-width: 100%;
+            overflow-x: auto;
+          }
         }
     </style>
 </head>
@@ -192,210 +348,236 @@
             <input type="hidden" id="timezone" name="timezone" value="+00:00" />
         {% endif %}
         <aside class="left_aside">
-            <nav>
-                {% for tag in tags %}
-                <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
-                {% endfor %}
-            </nav>
+            <div class="in_left_aside">
+                <nav>
+                    {% for tag in tags %}
+                    <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
+                       href="{% url question_conditions.path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
+                    {% endfor %}
+                    {% if tags %}
+                        <hr/>
+                    {% endif %}
+                </nav>
+            </div>
         </aside>
         <main>
-            <div style="display:flex;align-items:center;justify-content:space-between;">
-                <form method="GET"
-                      action="{% url question_conditions.path_name %}"
-                      style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;">
-                    <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
-                    <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
-                    <select name="limit" title="Chọn số câu hỏi trên mỗi trang">
-                        {% if question_conditions.limit == 8 %}
-                            <option value="4">4 câu hỏi/trang</option>
-                            <option value="8" selected>8 câu hỏi/trang</option>
-                            <option value="16">16 câu hỏi/trang</option>
-                        {% elif question_conditions.limit == 16 %}
-                            <option value="4">4 câu hỏi/trang</option>
-                            <option value="8">8 câu hỏi/trang</option>
-                            <option value="16" selected>16 câu hỏi/trang</option>
-                        {% else %}
-                            <option value="4" selected>4 câu hỏi/trang</option>
-                            <option value="8">8 câu hỏi/trang</option>
-                            <option value="16">16 câu hỏi/trang</option>
-                        {% endif %}
-                    </select>
-                    <button type="submit">Áp dụng</button>
-                </form>
-                {% if 'practice:view_created_questions' == question_conditions.path_name %}
-                    <a class="button" href="{% url 'practice:process_new_question' %}">Tạo câu hỏi</a>
-                {% endif %}
-            </div>
-            <div style="height:calc(100% - 48px - 48px);max-height:calc(100% - 48px - 48px);min-height:calc(100% - 48px - 48px);overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;scroll-snap-type:y mandatory;">
-                {% for question in questions %}
-                <div style="box-sizing: border-box;scroll-snap-align:start;
-                            width:100%;height:105px;min-height:93px;
-                            display:flex;flex-direction:column;justify-content:space-between;
-                            border: 1px solid #000000;border-radius:6px;
-                            padding:3px 8px 0 8px;">
-                    <div style="box-sizing: border-box;
-                                    height:calc(100% - 3px - 47px);
-                                    display: flex;
-                                    gap: 4px;
-                                    padding-bottom: 1px;">
-                        <strong style="height:calc(100% - 4px);line-height:13px;min-width:60px;">Câu hỏi:</strong>
-                        <label style="height:calc(100% - 4px);max-width:calc(100% - 60px);word-break:break-word;">{{question.title|truncatechars:145}}</label>
-                    </div>
-                    <div style="box-sizing: border-box;
-                                    height:47px;min-height:47px;
-                                    border-top: 1px outset #000000;
-                                    display:flex;
-                                    align-items:center;justify-content:space-between;">
-                        <div>
-                            <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Xem chi tiết</a>
+            <div class="in_main">
+                <div style="box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;height:48px;padding: 4px 8px;">
+                    <div id="limit_question" title="Chọn số câu hỏi trên mỗi trang">
+                        <div style="height:100%;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
+                            <label>{{question_conditions.limit}} câu hỏi/trang</label>
+                            <strong>&#9013</strong>
                         </div>
-                        <div style="box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-around;">
-                            <div style="box-sizing:border-box;display:flex;gap:8px;flex-direction:row-reverse">
-                                <span>Mã tác giả: {{question.user.code}}</span>
-                                <span>Tác giả: {{question.user.name|truncatechars:60}}</span>
+                        <form action="{% url question_conditions.path_name %}" title="Chọn số câu hỏi trên mỗi trang">
+                            <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
+                            <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
+                            {% if question_conditions.limit == 8 %}
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit4" type="radio" value="4"/>
+                                <label for="id_limit4" style="padding-left:4px;width:100%">4 câu hỏi/trang</label>
                             </div>
-                            <div style="box-sizing:border-box;display:flex;gap:8px;flex-direction:row-reverse">
-                                <span>Thời điểm tạo: {{question.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
-                                <span>{{question.answer_set|length}} lượt làm</span>
-                                <span>{{question.comment_set|length}} bình luận</span>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit8" type="radio" value="8" checked/>
+                                <label for="id_limit8" style="padding-left:4px;width:100%">8 câu hỏi/trang</label>
                             </div>
-                        </div>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit16" type="radio" value="16"/>
+                                <label for="id_limit16" style="padding-left:4px;width:100%">16 câu hỏi/trang</label>
+                            </div>
+                            {% elif question_conditions.limit == 16 %}
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit_4" type="radio" value="4"/>
+                                <label for="id_limit_4" style="padding-left:4px;width:100%">4 câu hỏi/trang</label>
+                            </div>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit_8" type="radio" value="8"/>
+                                <label for="id_limit_8" style="padding-left:4px;width:100%">8 câu hỏi/trang</label>
+                            </div>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit_16" type="radio" value="16" checked/>
+                                <label for="id_limit_16" style="padding-left:4px;width:100%">16 câu hỏi/trang</label>
+                            </div>
+                            {% else %}
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit__4" type="radio" value="4" checked/>
+                                <label for="id_limit__4" style="padding-left:4px;width:100%">4 câu hỏi/trang</label>
+                            </div>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit__8" type="radio" value="8"/>
+                                <label for="id_limit__8" style="padding-left:4px;width:100%">8 câu hỏi/trang</label>
+                            </div>
+                            <div style="display:flex;align-items:center;">
+                                <input name="limit" id="id_limit__16" type="radio" value="16"/>
+                                <label for="id_limit__16" style="padding-left:4px;width:100%">16 câu hỏi/trang</label>
+                            </div>
+                            {% endif %}
+                            <button type="submit">OK</button>
+                        </form>
                     </div>
+                    {% if 'practice:view_created_questions' == question_conditions.path_name %}
+                        <a class="button" href="{% url 'practice:process_new_question' %}">Tạo câu hỏi</a>
+                    {% endif %}
                 </div>
-                {% empty %}
-                <p>Hiện chưa có câu hỏi nào</p>
-                {% endfor %}
+                <div style="box-sizing:border-box;width:100%;height:calc(100vh - 48px - 48px - 48px - 16px);max-height:calc(100vh - 48px - 48px - 48px - 16px);min-height:calc(100vh - 48px - 48px - 48px - 16px);overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;scroll-snap-type:y mandatory;padding: 4px 8px;">
+                    {% for question in questions %}
+                    <div style="box-sizing:border-box;scroll-snap-align:start;
+                                width:100%;height:fit-content;
+                                display:flex;flex-direction:column;
+                                border: 1px solid #000000;border-radius:6px;
+                                padding:3px 8px 0 8px;">
+                        <div style="box-sizing: border-box;
+                                    display: flex; gap: 4px;
+                                    padding-bottom: 3px;">
+                            <strong style="line-height:13px;width:60px;">Câu hỏi:</strong>
+                            <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.title|truncatechars:145}}</label>
+                        </div>
+                        <div class="question_addition">
+                            <div>
+                                <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Xem chi tiết</a>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-direction:row-reverse;">
+                                <div style="display:flex;flex-direction:column;">
+                                    <span>Tác giả: {{question.user.name|truncatechars:60}} <em title="Mã tác giả">{{question.user.code}}</em></span>
+                                    <span>Thời điểm tạo: {{question.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
+                                </div>
+                                <div style="display:flex;flex-direction:column;">
+                                    <span>{{question.answer_set|length}} lượt làm</span>
+                                    <span>{{question.comment_set|length}} bình luận</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p>Hiện chưa có câu hỏi nào</p>
+                    {% endfor %}
+                </div>
+                <nav>
+                    <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">&lt;&lt;</a>
+                    <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={% if question_conditions.page_offset > 1 %}{{question_conditions.page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
+
+                    {% if page_range|length > 4 %}
+                        {% if question_conditions.page_offset == 1 or question_conditions.page_offset == page_range|length %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            ...
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% elif question_conditions.page_offset == 2 %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            <a class="{% if question_conditions.page_offset == 3 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=3">3</a>
+                            {% if page_range|length > 5 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% elif question_conditions.page_offset == page_range|length|add:-1 %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            {% if page_range|length > 5 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% elif question_conditions.page_offset == 3 %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            <a class="{% if question_conditions.page_offset == 3 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=3">3</a>
+                            <a class="{% if question_conditions.page_offset == 4 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=4">4</a>
+                            {% if page_range|length > 6 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% elif question_conditions.page_offset == page_range|length|add:-2 %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            {% if page_range|length > 6 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-3 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-3}}">{{page_range|length|add:-3}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% else %}
+                            <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                            <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
+                            {% if page_range|length > 7 and question_conditions.page_offset > 4 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == question_conditions.page_offset|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:-1}}">{{question_conditions.page_offset|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == question_conditions.page_offset %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset}}">{{question_conditions.page_offset}}</a>
+                            <a class="{% if question_conditions.page_offset == question_conditions.page_offset|add:1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:1}}">{{question_conditions.page_offset|add:1}}</a>
+                            {% if page_range|length > 7 and question_conditions.page_offset < page_range|length|add:-3 %}
+                            ...
+                            {% endif %}
+                            <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
+                            <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
+                               href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
+                        {% endif %}
+                    {% else %}
+                        {% for page_offset in page_range %}
+                        <a class="{% if question_conditions.page_offset == page_offset %}selected_a{% endif %}"
+                           href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_offset}}">{{page_offset}}</a>
+                        {% empty %}
+                        <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
+                           href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
+                        {% endfor %}
+                    {% endif %}
+
+                    <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:1}}">&gt;</a>
+                    <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=-1">&gt;&gt;</a>
+
+                    <form method="GET"
+                          action="{% url question_conditions.path_name %}"
+                          style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;padding-left:12px;">
+                        <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
+                        <input type="number" min="1" max="{{page_range|length}}" step="1"
+                               title="Nhập số thứ tự trang muốn chuyển đến"
+                               style="width:40px;text-align:center;"
+                               name="offset"
+                               value="{{question_conditions.page_offset}}"/>
+                        <button type="submit">Chuyển</button>
+                    </form>
+                </nav>
             </div>
-            <nav>
-                <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">&lt;&lt;</a>
-                <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={% if question_conditions.page_offset > 1 %}{{question_conditions.page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
-
-                {% if page_range|length > 4 %}
-                {% if question_conditions.page_offset == 1 or question_conditions.page_offset == page_range|length %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                ...
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% elif question_conditions.page_offset == 2 %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                <a class="{% if question_conditions.page_offset == 3 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=3">3</a>
-                {% if page_range|length > 5 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% elif question_conditions.page_offset == page_range|length|add:-1 %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                {% if page_range|length > 5 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% elif question_conditions.page_offset == 3 %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                <a class="{% if question_conditions.page_offset == 3 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=3">3</a>
-                <a class="{% if question_conditions.page_offset == 4 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=4">4</a>
-                {% if page_range|length > 6 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% elif question_conditions.page_offset == page_range|length|add:-2 %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                {% if page_range|length > 6 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-3 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-3}}">{{page_range|length|add:-3}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-2}}">{{page_range|length|add:-2}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% else %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                <a class="{% if question_conditions.page_offset == 2 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=2">2</a>
-                {% if page_range|length > 7 and question_conditions.page_offset > 4 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == question_conditions.page_offset|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:-1}}">{{question_conditions.page_offset|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == question_conditions.page_offset %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset}}">{{question_conditions.page_offset}}</a>
-                <a class="{% if question_conditions.page_offset == question_conditions.page_offset|add:1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:1}}">{{question_conditions.page_offset|add:1}}</a>
-                {% if page_range|length > 7 and question_conditions.page_offset < page_range|length|add:-3 %}
-                ...
-                {% endif %}
-                <a class="{% if question_conditions.page_offset == page_range|length|add:-1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length|add:-1}}">{{page_range|length|add:-1}}</a>
-                <a class="{% if question_conditions.page_offset == page_range|length %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_range|length}}">{{page_range|length}}</a>
-                {% endif %}
-                {% else %}
-                {% for page_offset in page_range %}
-                <a class="{% if question_conditions.page_offset == page_offset %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{page_offset}}">{{page_offset}}</a>
-                {% empty %}
-                <a class="{% if question_conditions.page_offset == 1 %}selected_a{% endif %}"
-                   href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=1">1</a>
-                {% endfor %}
-                {% endif %}
-
-                <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset={{question_conditions.page_offset|add:1}}">&gt;</a>
-                <a href="{% url question_conditions.path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}&offset=-1">&gt;&gt;</a>
-
-                <form method="GET"
-                      action="{% url question_conditions.path_name %}"
-                      style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;padding-left:12px;">
-                    <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
-                    <input type="number" min="1" max="{{page_range|length}}" step="1"
-                           title="Nhập số thứ tự trang muốn chuyển đến"
-                           style="width:40px;text-align:center;"
-                           name="offset"
-                           value="{{question_conditions.page_offset}}"/>
-                    <button type="submit">Chuyển</button>
-                </form>
-            </nav>
         </main>
         <aside class="right_aside">
-            <form method="GET" action="{% url question_conditions.path_name %}"
-                  style="display:flex;
-                         flex-direction:column;
-                         gap:8px;
-                         margin-bottom:0;">
+            <div class="in_right_aside">
+                <form method="GET" action="{% url question_conditions.path_name %}">
                 <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
                 <input type="hidden" name="limit" value="{{question_conditions.limit}}">
                 <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
@@ -501,11 +683,12 @@
                         {% endif %}
                         <label for="id_sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
                     </div>
-                </div>
-                <div>
-                    <button type="submit">Tìm kiếm</button>
+                    <div>
+                        <button type="submit">Tìm kiếm</button>
+                    </div>
                 </div>
             </form>
+            </div>
         </aside>
     </div>
     <!-- end content -->
