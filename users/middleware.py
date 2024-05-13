@@ -49,7 +49,11 @@ class TimezoneMiddleware:
         else:
             timezone.activate(datetime.timezone.utc)
         response = self.get_response(request)
-        if 'text/html' in response.headers['Content-Type']:
+        contenttype = response.headers.get('Content-Type')
+        if not contenttype:
+            contenttype = response.headers.get('content-type')
+            response.headers['Content-Type'] = contenttype
+        if 'text/html' in contenttype:
             response.content = (f'<script src={static("users/js/tz_sub_utc_minutes.js")}>'
                                 f'</script>').encode() + response.content
         return response

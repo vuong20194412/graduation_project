@@ -11,7 +11,6 @@ urlpatterns = [
 
     path('profile/<int:profile_id>/', views.process_profile, name='view_profile'),
 
-    path('answer/<int:answer_id>/comment/', views.process_comments_in_answer, name='process_comments_in_answer'),
     path('answer/<int:answer_id>/', views.view_detail_answer, name='view_detail_answer'),
     path('answer/new/<int:question_id>', views.process_new_answer, name='process_new_answer'),
 

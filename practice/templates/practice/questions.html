@@ -340,7 +340,7 @@
         </dialog>
     {% endif %}
 
-    {% include 'practice/header.html' with current_path_name=question_conditions.path_name current_tag_id=question_conditions.tag_id current_limit=question_conditions.limit change_password_link=change_password_link logout_link=logout_link  %}
+    {% include 'practice/header.html' with current_path_name=question_conditions.path_name current_tag_id=question_conditions.tag_id current_limit=question_conditions.limit change_password_link=change_password_link logout_link=logout_link role=user.role %}
 
     <!-- content -->
     <div id="id_content">

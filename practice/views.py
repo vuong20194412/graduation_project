@@ -30,13 +30,13 @@ def view_questions(request, path_name, function_filter=None, notification=''):
 
     tags = QuestionTag.objects.all()
     if tags:
-        tag_id = convert_to_non_negative_int(string=(params.get('tid') or ''), default=tags[0].id)
+        tag_id = convert_to_non_negative_int(string=params.get('tid', ''), default=tags[0].id)
         if not tags.filter(id=tag_id):
             tag_id = tags[0].id
     else:
         raise Http404()
 
-    limit = convert_to_non_negative_int(string=(params.get('limit') or ''), default=4) or 4
+    limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4) or 4
 
     if (params.get('type') or '') == 'is_filters_and_sorters':
         request.session[f'{path_name}__filters_and_sorters'] = {
@@ -75,8 +75,19 @@ def view_questions(request, path_name, function_filter=None, notification=''):
         kfilter['title__iregex'] = r"^[^,]*" + ('|'.join([title.strip() for title in titles.split(',')])) + r"[^,]*$"
     authors = _filters_and_sorters['filter_by_author']
     if authors:
-        kfilter['user__name__iregex'] = r"^[^,]*" + (
-            '|'.join([author.strip() for author in authors.split(',')])) + r"[^,]*$"
+        author_names_and_codes = [author.strip() for author in authors.split(',')]
+        author_codes = []
+        author_names = []
+        for author in author_names_and_codes:
+            if author:
+                if author[0] == '#':
+                    author_codes.append(author)
+                else:
+                    author_names.append(author)
+        if author_codes:
+            kfilter['user__code__iregex'] = r"^" + ('|'.join(author_codes)) + r"[^,]*$"
+        if author_names:
+            kfilter['user__name__iregex'] = r"^[^,]*" + ('|'.join(author_names)) + r"[^,]*$"
 
     order_by = {'sorter': [], 'kalias': {}}
     order_created_at = _filters_and_sorters['sorter_with_created_at']
@@ -94,7 +105,7 @@ def view_questions(request, path_name, function_filter=None, notification=''):
 
     page_count = math_ceil(function_filter(user_id=request.user.id, begin=0, count=True, kfilter=kfilter) / limit) or 1
 
-    page_offset = convert_to_int(string=(params.get('offset') or ''), default=1)
+    page_offset = convert_to_int(string=params.get('offset', ''), default=1)
     if page_offset > 1:
         page_offset = page_offset if page_offset < page_count else page_count
     else:
@@ -401,12 +412,12 @@ def process_new_question(request):
 
         _data['choices']['values'] = choices
 
-        true_choice = params.get('true_choice')
+        true_choice = params.get('true_choice', '')
         if not true_choice:
             first_invalid = 'choices'
             _data['choices']['errors'].append(_('Phải có 1 lựa chọn đúng.'))
         else:
-            true_choice = convert_to_non_negative_int(true_choice)
+            true_choice = convert_to_non_negative_int(string=true_choice)
             _data['true_choice']['value'] = true_choice
             if first_invalid != 'choices':
                 if true_choice < 1:
@@ -424,12 +435,12 @@ def process_new_question(request):
         else:
             _data['title']['value'] = title
 
-        tag_id = params.get('tag_id') or ''
+        tag_id = params.get('tag_id', '')
         if not tag_id:
             first_invalid = 'tag_id'
             _data['tag_id']['errors'].append(_('Trường này không được để trống.'))
         else:
-            tag_id = convert_to_non_negative_int(tag_id)
+            tag_id = convert_to_non_negative_int(string=tag_id)
             _data['tag_id']['value'] = tag_id
             if tag_id < 1:
                 first_invalid = 'tag_id'
@@ -496,12 +507,12 @@ def process_new_answer(request, question_id):
         first_invalid = ''
         params = request.POST
 
-        choice = params.get('choice')
+        choice = params.get('choice', '')
         if not choice:
             first_invalid = 'choice'
             _data['choice']['errors'].append(_('Phải chọn 1 lựa chọn.'))
         else:
-            choice = convert_to_non_negative_int(choice)
+            choice = convert_to_non_negative_int(string=choice)
             _data['choice']['value'] = choice
             if choice > len(choices) or choice < 1:
                 first_invalid = 'choice'
@@ -509,7 +520,7 @@ def process_new_answer(request, question_id):
 
         return _data, not first_invalid
 
-    question = Question.objects.filter(id=question_id,state='Approved')
+    question = Question.objects.filter(id=question_id, state='Approved')
     if not question:
         return HttpResponseNotFound()
     question = question[0]
@@ -541,7 +552,7 @@ def view_detail_question(request, question_id):
     if request.user.role == 'Admin':
         question = get_object_or_404(Question, pk=question_id)
     else:
-        question = Question.objects.filter(state='Approved') or Question.objects.filter(user_id=request.user.id)
+        question = Question.objects.filter(id=question_id, state='Approved') | Question.objects.filter(id=question_id, user_id=request.user.id)
         if not question:
             return HttpResponseNotFound()
         question = question[0]
@@ -557,7 +568,7 @@ def view_detail_question(request, question_id):
             notification = 'Thực hiện không duyệt câu hỏi thành công'
         elif notification == 'locked_success':
             notification = 'Thực hiện khóa câu hỏi thành công'
-        past_answers = Answer.objects.filter(user_id=request.user.id,question_id=question_id)
+        past_answers = Answer.objects.filter(user_id=request.user.id, question_id=question_id)
     return render(request,
                   "practice/detail_question.html",
                   {
@@ -574,7 +585,7 @@ def view_detail_answer(request, answer_id=None):
     if request.user.role != 'Admin':
         answer = get_object_or_404(Answer, pk=answer_id)
     else:
-        answer = Answer.objects.filter(user_id=request.user.id,question__state='Approved') or Question.objects.filter(user_id=request.user.id,question__user_id=request.user.id)
+        answer = Answer.objects.filter(id=answer_id, user_id=request.user.id, question__state='Approved') | Question.objects.filter(id=answer_id, user_id=request.user.id, question__user_id=request.user.id)
         if not answer:
             return HttpResponseNotFound()
         answer = answer[0]
@@ -588,9 +599,9 @@ def view_detail_answer(request, answer_id=None):
 
 
 def get_comments(question, params, data):
-    limit = convert_to_non_negative_int(string=(params.get('limit') or ''), default=4) or 4
+    limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4) or 4
     page_count = math_ceil(question.comment_set.count() / limit) or 1
-    page_offset = convert_to_int(string=(params.get('offset') or ''), default=1)
+    page_offset = convert_to_int(string=params.get('offset', ''), default=1)
     if page_offset > 1:
         page_offset = page_offset if page_offset < page_count else page_count
     else:
@@ -631,7 +642,10 @@ def create_new_comment(question, request):
 
 @ensure_is_not_anonymous_user
 def process_comments_in_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
+    question = Question.objects.filter(id=question_id, state='Approved')
+    if not question:
+        return HttpResponseNotFound()
+    question = question[0]
     data = {
         'comment_content': {
             'label': _('Bình luận mới'),
@@ -647,28 +661,6 @@ def process_comments_in_question(request, question_id):
         offset = create_new_comment(question, request)
         to_method_get_url = f'{reverse("practice:process_comments_in_question", args=[question_id])}?limit={request.POST.get("limit") or ""}&offset={offset}'
         return redirect(to=to_method_get_url)
-
-
-@ensure_is_not_anonymous_user
-def process_comments_in_answer(request, answer_id):
-    answer = get_object_or_404(Answer, pk=answer_id)
-    data = {
-        'comment_content': {
-            'label': _('Bình luận mới'),
-            'value': '',
-            'errors': [],
-        },
-        'error': '',
-    }
-    question = answer.question
-    if request.method == 'GET':
-        context = get_comments(question, request.GET, data)
-        context["answer"] = answer
-        return render(request, "practice/detail_answer.html", context)
-    elif request.method == 'POST':
-        context = create_new_comment(question, request, data)
-        context["answer"] = answer
-        return render(request, "practice/detail_answer.html", context)
 
 
 def process_new_question_evaluation(request):
@@ -689,14 +681,14 @@ def process_new_question_evaluation(request):
     notification = ''
     if request.method == 'GET':
         params = request.GET
-        qid = convert_to_non_negative_int(string=params.get('qid'))
-        question = Question.objects.filter(id=qid,state='Approved')
+        qid = convert_to_non_negative_int(string=params.get('qid', ''))
+        question = Question.objects.filter(id=qid, state='Approved')
         if not question:
             return HttpResponseNotFound()
         question = question[0]
     else:
         params = request.POST
-        qid = convert_to_non_negative_int(string=params.get('qid'))
+        qid = convert_to_non_negative_int(string=params.get('qid', ''))
         question = Question.objects.filter(id=qid, state='Approved')
         if not question:
             return HttpResponseNotFound()
@@ -705,7 +697,7 @@ def process_new_question_evaluation(request):
         if evaluation_content:
             qe = QuestionEvaluation(
                 content=evaluation_content,
-                comment_id=question.id,
+                question_id=question.id,
                 user_id=request.user.id,
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
@@ -742,15 +734,15 @@ def process_new_comment_evaluation(request):
     notification = ''
     if request.method == 'GET':
         params = request.GET
-        cid = convert_to_non_negative_int(string=params.get('cid'))
-        comment = Question.objects.filter(id=cid, state='Normal')
+        cid = convert_to_non_negative_int(string=params.get('cid', ''))
+        comment = Comment.objects.filter(id=cid, state='Normal')
         if not comment:
             return HttpResponseNotFound()
         comment = comment[0]
     else:
         params = request.POST
-        cid = convert_to_non_negative_int(string=params.get('cid'))
-        comment = Question.objects.filter(id=cid, state='Normal')
+        cid = convert_to_non_negative_int(string=params.get('cid', ''))
+        comment = Comment.objects.filter(id=cid, state='Normal')
         if not comment:
             return HttpResponseNotFound()
         comment = comment[0]
@@ -800,7 +792,7 @@ def process_detail_question_by_admin(request, question_id):
         # 1 : Pending -> Approved
         # 2 : Pending -> Unapproved
         # 3 : Approved -> Locked
-        action = convert_to_non_negative_int(string=(params.get('action')))
+        action = convert_to_non_negative_int(string=params.get('action', ''))
         if action == 1:
             if question.state == 'Pending':
                 question.state = 'Approved'
@@ -854,7 +846,27 @@ def process_detail_question_by_admin(request, question_id):
 
 @ensure_is_admin
 def view_pending_questions_by_admin(request):
-    pass
+    def filter_pending_questions_by_admin(user_id: int, begin: int, end: int = None, count: int = False,
+                                          order_by: dict = None, kfilter: dict = None):
+        if not isinstance(kfilter, dict):
+            kfilter = {}
+        kfilter['state'] = 'Pending'
+        if count:
+            return Question.objects.filter(**kfilter).count()
+        elif isinstance(order_by, dict):
+            kalias = order_by.get('kalias') or {}
+            order_by = order_by.get('sorter') or []
+            if end is not None:
+                return Question.objects.filter(**kfilter).alias(**kalias).order_by(*order_by)[begin:end]
+            return Question.objects.filter(**kfilter).alias(**kalias).order_by(*order_by)[begin:]
+        else:
+            if end is not None:
+                return Question.objects.filter(**kfilter)[begin:end]
+            return Question.objects.filter(**kfilter)[begin:]
+
+    return view_questions(request=request,
+                          path_name='practice:view_pending_questions_by_admin',
+                          function_filter=filter_pending_questions_by_admin)
 
 
 @ensure_is_admin

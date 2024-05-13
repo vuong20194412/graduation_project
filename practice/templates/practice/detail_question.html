@@ -184,7 +184,7 @@
 </dialog>
 {% endif %}
 
-{% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link  %}
+{% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link role=user.role %}
 
 <!-- content -->
 <div style="box-sizing:border-box;
@@ -244,7 +244,7 @@
                 <div style="max-width:calc(50% - 60px);">
                     <p><strong>Tác giả: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{question.user.name}}</span>
                     </p>
-                    <p><strong>Mã tác giả:</strong> <a href="" style="text-decoration:none;">{{question.user.code}}</a>
+                    <p><strong>Mã tác giả:</strong> <a href="{% url 'practice:view_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a>
                     </p>
                 </div>
             </div>
@@ -290,8 +290,11 @@
                 <div>
                     <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
                         {% csrf_token %}
-                        <input type="hidden" name="coffset" value="{{comment_conditions.page_offset}}"/>
-                        <input type="hidden" name="climit" value="{{comment_conditions.limit}}"/>
+                        <input type="hidden" name="qid" value="{{question.id}}"/>
+                        {% if showing_comments %}
+                            <input type="hidden" name="coffset" value="{{comment_conditions.page_offset}}"/>
+                            <input type="hidden" name="climit" value="{{comment_conditions.limit}}"/>
+                        {% endif %}
                         <textarea autofocus
                               id="id_evaluation_content"
                               name="evaluation_content"

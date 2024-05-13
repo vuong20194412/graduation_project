@@ -173,7 +173,7 @@
     </style>
 </head>
 <body>
-    {% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link  %}
+    {% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link role=user.role %}
 
     <div id="id_content" style="justify-content:center;">
         {% if suffix_utc %}

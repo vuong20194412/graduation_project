@@ -75,12 +75,23 @@
 
     <main>
         {% if data.readonly %}
-        <div>
-            <h2>Thông tin người dùng</h2>
-            <p><strong>{{data.code.label}}: </strong>{{data.code.value}}</p>
-            <p><strong>{{data.name.label}}: </strong>{{data.name.value}}</p>
-            <p><strong>{{data.email.label}}: </strong>{{data.email.value}}</p>
-        </div>
+        <form>
+            <h2 style="width:100%;">Thông tin hồ sơ</h2>
+            <div style="width:100%;">
+                <p><strong>{{data.code.label}}: </strong>{{data.code.value}}</p>
+            </div >
+            <div style="width:100%;">
+                <p><strong>{{data.name.label}}: </strong>{{data.name.value}}</p>
+            </div>
+            <div style="width:100%;">
+                <p><strong>{{data.email.label}}: </strong>{{data.email.value}}</p>
+            </div>
+            <div>
+                {% if data.back_url %}
+                    <a href="{{data.back_url}}">Trở lại trang trước</a>
+                {% endif %}
+            </div>
+        </form>
         {% else %}
         <form method="post">
             <h2>Quản lý tài khoản</h2>
