@@ -185,8 +185,7 @@ def view_answered_questions(request):
         if not isinstance(kfilter, dict):
             kfilter = {}
         kfilter['answer__user_id'] = user_id
-        if get_user_model().objects.filter(id=user_id).exclude(role='Admin'):
-            kfilter['state'] = 'Approved'
+        kfilter['state'] = 'Approved'
         if count:
             return Question.objects.filter(**kfilter).count()
         elif isinstance(order_by, dict):
@@ -212,8 +211,7 @@ def view_unanswered_questions(request):
         if not isinstance(kfilter, dict):
             kfilter = {}
         kexclude = {'answer__user_id': user_id}
-        if get_user_model().objects.filter(id=user_id).exclude(role='Admin'):
-            kfilter['state'] = 'Approved'
+        kfilter['state'] = 'Approved'
         if count:
             return Question.objects.filter(**kfilter).exclude(**kexclude).count()
         elif isinstance(order_by, dict):
@@ -362,13 +360,13 @@ def process_new_question(request):
             'errors': [],
         },
         'choices': {
-            'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung)'),
-            'values': ['', '', '', ''],
-            'errors': [],
-        },
-        'true_choice': {
-            'label': _('Lựa chọn đúng (phải có 1 lựa chọn có nội dung là lựa chọn đúng)'),
-            'value': 0,
+            'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng))'),
+            'values': [
+                {"content": "", "is_true": False},
+                {"content": "", "is_true": False},
+                {"content": "", "is_true": False},
+                {"content": "", "is_true": False}
+            ],
             'errors': [],
         },
         'image': {
@@ -399,34 +397,38 @@ def process_new_question(request):
 
         choices = []
         choice_order = 1
-        while f'choice_{choice_order}' in params:
-            choices.append(params.get(f'choice_{choice_order}') or '')
+        count_choice_content = 0
+        count_true_choice = 0
+        count_valid_true_choice = 0
+        while f'choice_content_{choice_order}' in params:
+            choice_content = params.get(f'choice_content_{choice_order}', '')
+            choice_is_true = params.get(f'choice_is_true_{choice_order}', False)
+            choices.append({"content": choice_content, "is_true": choice_is_true,})
+            if choice_content:
+                count_choice_content += 1
+                if choice_is_true:
+                    count_true_choice += 1
+                    count_valid_true_choice += 1
+            elif choice_is_true:
+                count_true_choice += 1
             choice_order += 1
         while choice_order <= 4:
-            choices.append('')
+            choices.append({"content": "", "is_true": False})
             choice_order += 1
 
-        if len(choices) - choices.count('') < 2:
+        if count_choice_content < 2:
             first_invalid = 'choices'
             _data['choices']['errors'].append(_('Phải có ít nhất 2 lựa chọn có nội dung.'))
 
         _data['choices']['values'] = choices
 
-        true_choice = params.get('true_choice', '')
-        if not true_choice:
+        if count_true_choice < 1:
             first_invalid = 'choices'
-            _data['choices']['errors'].append(_('Phải có 1 lựa chọn đúng.'))
+            _data['choices']['errors'].append(_('Phải có ít nhất 1 lựa chọn đúng.'))
         else:
-            true_choice = convert_to_non_negative_int(string=true_choice)
-            _data['true_choice']['value'] = true_choice
-            if first_invalid != 'choices':
-                if true_choice < 1:
-                    first_invalid = 'choices'
-                    _data['choices']['errors'].append(_('Phải có 1 lựa chọn đúng.'))
-                else:
-                    if true_choice > len(choices) or not choices[true_choice - 1]:
-                        first_invalid = 'choices'
-                        _data['choices']['errors'].append(_('Lựa chọn đúng phải là 1 trong các lựa chọn có nội dung'))
+            if count_choice_content and count_valid_true_choice == 0:
+                first_invalid = 'choices'
+                _data['choices']['errors'].append(_('Lựa chọn đúng phải là 1 trong các lựa chọn có nội dung'))
 
         title = params.get('title') or ''
         if not title:
@@ -459,21 +461,11 @@ def process_new_question(request):
         data, is_valid = valid_form_new_question(_data=data)
         if is_valid:
             data['title']['value'] = data['title']['value'].strip()
-            not_empty_choices = []
-            true_choice0 = data['true_choice']['value'] - 1
-            j = 1
-            for i, choice in enumerate(data['choices']['values']):
-                if true_choice0 == i:
-                    data['true_choice']['value'] = j
-                if choice:
-                    j += 1
-                    not_empty_choices.append(choice.strip())
-            data['choices']['values'] = not_empty_choices
+            data['choices']['values'] = [choice for choice in data['choices']['values'] if choice['content']]
 
             q = Question(title=data['title']['value'],
                          state='Pending',
                          choices=data['choices']['values'],
-                         true_choice=data['true_choice']['value'],
                          tag_id=data['tag_id']['value'],
                          user_id=request.user.id,
                          image=data['image']['value'],
@@ -495,9 +487,9 @@ def process_new_question(request):
 @ensure_is_not_anonymous_user
 def process_new_answer(request, question_id):
     data = {
-        'choice': {
+        'choices': {
             'label': _('Lựa chọn'),
-            'value': 0,
+            'value': [],
             'errors': [],
         },
         'back_url': '',
@@ -507,16 +499,18 @@ def process_new_answer(request, question_id):
         first_invalid = ''
         params = request.POST
 
-        choice = params.get('choice', '')
-        if not choice:
-            first_invalid = 'choice'
-            _data['choice']['errors'].append(_('Phải chọn 1 lựa chọn.'))
+        choices = params.get('choice', [])
+        if not choices:
+            first_invalid = 'choices'
+            _data['choices']['errors'].append(_('Phải chọn 1 lựa chọn.'))
         else:
-            choice = convert_to_non_negative_int(string=choice)
-            _data['choice']['value'] = choice
-            if choice > len(choices) or choice < 1:
-                first_invalid = 'choice'
-                _data['choice']['errors'].append(_('Phải chọn 1 lựa chọn trong các lựa chọn.'))
+            for choice in choices:
+                choice = convert_to_non_negative_int(string=choice)
+                if 1 <= choice <= len(choices):
+                    _data['choices']['value'].append(choice)
+            if not _data['choices']['value']:
+                first_invalid = 'choices'
+                _data['choices']['errors'].append(_('Phải chọn 1 lựa chọn trong các lựa chọn.'))
 
         return _data, not first_invalid
 
@@ -527,10 +521,20 @@ def process_new_answer(request, question_id):
     if request.method == 'POST':
         data, is_valid = valid_form_new_answer(_data=data, choices=question.choices)
         if is_valid:
+            is_correct = True
+            for i in data['choices']['value']:
+                if not question.choices[i - 1]:
+                    is_correct = False
+                    break
+            for i in range(0, len(question.choices)):
+                if question.choices[i] and (i + 1) not in data['choices']['value']:
+                    is_correct = False
+                    break
             a = Answer(
-                choice=data['choice']['value'],
+                choices=data['choices']['value'],
                 question_id=question_id,
                 user_id=request.user.id,
+                is_correct=is_correct,
                 created_at=datetime.datetime.now(datetime.timezone.utc),
             )
             a.save()
@@ -585,7 +589,7 @@ def view_detail_answer(request, answer_id=None):
     if request.user.role != 'Admin':
         answer = get_object_or_404(Answer, pk=answer_id)
     else:
-        answer = Answer.objects.filter(id=answer_id, user_id=request.user.id, question__state='Approved') | Question.objects.filter(id=answer_id, user_id=request.user.id, question__user_id=request.user.id)
+        answer = Answer.objects.filter(id=answer_id, user_id=request.user.id, question__state='Approved') | Answer.objects.filter(id=answer_id, user_id=request.user.id, question__user_id=request.user.id)
         if not answer:
             return HttpResponseNotFound()
         answer = answer[0]

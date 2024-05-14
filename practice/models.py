@@ -21,8 +21,8 @@ class Question(models.Model):
     }
     title = models.CharField(_('Tiêu đề'), max_length=255, )
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
+    # [{'content': text, 'is_true': bool}]
     choices = models.JSONField(verbose_name=_('Các lựa chọn'), default=list, )
-    true_choice = models.IntegerField(verbose_name=_('Đáp án là lựa chọn thứ'), )
 
     def upload_to(self, filename):
         # "images/practice/%Y%m%d%H%M%S%f" + removed_#_code + filename
@@ -39,7 +39,9 @@ class Question(models.Model):
 
 
 class Answer(models.Model):
-    choice = models.IntegerField(verbose_name=_('Lựa chọn là lựa chọn thứ'), default=0)
+    # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn
+    choices = models.JSONField(verbose_name=_('Các lựa chọn'), default=list)
+    is_correct = models.BooleanField(verbose_name=_('Đúng không?'), )
     question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
@@ -81,3 +83,13 @@ class CommentEvaluation(models.Model):
     created_at = models.DateTimeField(_('Thời điểm tạo'), )
 
     objects = models.Manager()
+
+
+class QuestionHashTag:
+    name = models.CharField(verbose_name=_('Tên hashtag'), max_length=255, )
+    questions = models.ManyToManyField(to=Question)
+
+#thêm công thức toán học
+#hash tag
+#cau hoi nhieu cAU tra loi dung
+#lỗi hiển thị sai trên danh sach cau hỏi

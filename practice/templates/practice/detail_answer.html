@@ -27,6 +27,7 @@
             margin: 0;
         }
     </style>
+    <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
     <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
 
     <style>
@@ -115,7 +116,7 @@
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
 
-        main>nav {
+        #id_comments_nav {
             box-sizing: border-box;
             display: flex;
             height: 40px;
@@ -123,7 +124,7 @@
             align-items: center;
         }
 
-        main>nav>a {
+        #id_comments_nav>a {
             box-sizing: border-box;
             height: 36px;
             width: 36px;
@@ -137,18 +138,18 @@
             line-height: 34px;
         }
 
-        main>nav>a:visited {
+        #id_comments_nav>a:visited {
             color: #000000;
         }
 
-        main>nav>a.selected_a {
+        #id_comments_nav>a.selected_a {
             border-width: 2px;
             line-height: 32px;
             background-color: #6CB0F9;
             color: #FFFFFF;
         }
 
-        main>nav>a:not(.selected_a):hover {
+        #id_comments_nav>a:not(.selected_a):hover {
             border-width: 2px;
             line-height: 32px;
             background-color: #6CB0F9;
@@ -156,7 +157,7 @@
             color: #FFFFFF;
         }
 
-        main>nav>a.selected_a:hover {
+        #id_comments_nav>a.selected_a:hover {
             opacity: 0.6;
         }
         p {
@@ -173,59 +174,59 @@
     </style>
 </head>
 <body>
-    {% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link role=user.role %}
 
-    <div id="id_content" style="justify-content:center;">
-        {% if suffix_utc %}
-            <input type="hidden" id="timezone" name="timezone" value="+00:00" />
-        {% endif %}
-        <main style="height:fit-content;">
-            <form method="POST" style="display:flex;flex-direction:column;">
-                {% csrf_token %}
-                <div style="display:flex;justify-content: space-between;padding:4px 0;">
-                    <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Tới trang chi tiết câu hỏi</a>
-                    <button type="submit">Lưu</button>
+{% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link role=user.role %}
+
+<!-- content -->
+<div style="box-sizing:border-box;
+                width:100%; max-height:calc(100% - 48px);
+                padding:8px;
+                display:flex; gap:8px;">
+    {% if suffix_utc %}
+    <input type="hidden" id="timezone" name="timezone" value="+00:00"/>
+    {% endif %}
+    <aside class="left_aside">
+        <div>
+            {% if data.back_url %}
+            <a class="button" href="{{data.back_url}}">Trở lại trang trước</a>
+            {% endif %}
+        </div>
+    </aside>
+    <main style="height:fit-content;">
+        <div style="display:flex;flex-direction:column;border-bottom:1px solid #000000;padding-bottom:8px;">
+            <div style="display:flex;justify-content:end;">
+                <div style="max-width:calc(50% - 60px);">
+                    <p><strong>Tác giả: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{answer.question.user.name}}</span>
+                    </p>
+                    <p><strong>Mã tác giả:</strong> <a href="{% url 'practice:view_profile' answer.question.user.id %}" style="text-decoration:none;">{{answer.question.user.code}}</a>
+                    </p>
                 </div>
-                <div style="display:flex;flex-direction:column;border-top:1px solid #000000;padding-top:8px;">
-                    <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{question.title}}</p>
-                    {% if question.choices %}
-                    <div>
-                        <p>Các lựa chọn:</p>
-                        <ol>
-                            {% if is_multichoice %}
-                                {% for choice in question.choices %}
-                                    <li>
-                                        <input type="checkbox"
-                                           name="choice"
-                                           id="id_choice__{{forloop.counter}}"
-                                        value="{{forloop.counter}}"/>
-                                        <label class="native" for="id_choice_{{forloop.counter}}">{{choice.content}}</label>
-                                    </li>
-                                {% endfor %}
-                            {% else %}
-                                {% for choice in question.choices %}
-                                    <li>
-                                        <input type="radio"
-                                           name="choice"
-                                           id="id_choice_{{forloop.counter}}"
-                                        value="{{forloop.counter}}"/>
-                                        <label class="native" for="id_choice_{{forloop.counter}}">{{choice.content}}</label>
-                                    </li>
-                                {% endfor %}
-                            {% endif %}
-                        </ol>
-                        {% for error in data.choices.errors %}
-                            <p class="error" ref="id_choices">{{error}}</p>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% if question.image %}
-                        <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
-                    {% endif %}
-                </div>
-            </form>
-        </main>
-    </div>
-    <!-- end content -->
+            </div>
+            <hr/>
+            <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{answer.question.title}}
+            </p>
+            {% if answer.question.choices %}
+            <div>
+                <p>Các lựa chọn:</p>
+                <ol>
+                    {% for choice in answer.question.choices %}
+                        <li>{{choice.content}}</li>
+                    {% endfor %}
+                </ol>
+                <p><strong>{% if answer.choices|length > 1 %}Các {% endif %}Lựa chọn đã chọn: </strong>Lựa chọn thứ {% for choice in answer.choices %}{% if forloop.counter0 %}, {% endif %}{{choice}}{% endfor %}</p>
+                {% if answer.is_correct %}
+                    <p>Lựa chọn đã chọn đúng so với đáp án của tác giá</p>
+                {% else %}
+                    <p>Lựa chọn đã chọn sai so với đáp án của tác giả</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if answer.question.image %}
+            <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+            {% endif %}
+        </div>
+    </main>
+</div>
+<!-- end content -->
 </body>
 </html>

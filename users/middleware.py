@@ -52,6 +52,11 @@ class TimezoneMiddleware:
         contenttype = response.headers.get('Content-Type')
         if not contenttype:
             contenttype = response.headers.get('content-type')
+            if not contenttype:
+                if request.path.endswith(".png"):
+                    contenttype = 'image/png'
+                if request.path.endswith(".jpg") or request.path.endswith(".jpeg"):
+                    contenttype = 'image/jpg'
             response.headers['Content-Type'] = contenttype
         if 'text/html' in contenttype:
             response.content = (f'<script src={static("users/js/tz_sub_utc_minutes.js")}>'
