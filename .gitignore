@@ -1,0 +1,7 @@
+.gitattributes
+__pycache__/
+__pycache__/*
+migrations/*.py
+!migrations/__int__.py
+static_files/*
+media_files/*
