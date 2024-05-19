@@ -1,7 +1,9 @@
 .gitattributes
 __pycache__/
 __pycache__/*
-migrations/*.py
+practice/migrations/*.py
+users/migrations/*.py
 !migrations/__int__.py
 static_files/*
 media_files/*
+db.sqlite3
