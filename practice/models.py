@@ -51,7 +51,7 @@ class Question(models.Model):
 class Answer(models.Model):
     # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn
     choices = models.JSONField(verbose_name=_('Các lựa chọn'), default=list)
-    is_correct = models.BooleanField(verbose_name=_('Đúng không?'), )
+    is_correct = models.BooleanField(verbose_name=_('Đúng không?'), default=False)
     question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
