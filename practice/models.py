@@ -17,7 +17,7 @@ class Question(models.Model):
         'Pending': _('Chờ duyệt'),
         'Unapproved': _('Không được duyệt'),
         'Approved': _('Đã duyệt'),
-        'Locked': _('Đã khóa'),
+        'Locked': _('Đã khóa')
     }
     content = models.TextField(_('nội dung câu hỏi'), )
     state = models.CharField(verbose_name=_('trạng thái câu hỏi'), max_length=255, choices=STATE_CHOICES, default='Pending', )
@@ -63,7 +63,7 @@ class Answer(models.Model):
 class Comment(models.Model):
     STATE_CHOICES = {
         'Normal': _('Bình thường'),
-        'Locked': _('Đã khóa'),
+        'Locked': _('Đã khóa')
     }
     content = models.TextField(verbose_name=_('Nội dung'), default='')
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
@@ -81,7 +81,7 @@ class QuestionEvaluation(models.Model):
     content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
     STATE_CHOICES = {
         'Pending': _('Chở xử lý'),
-        'Locked': _('Đã xử lý'),
+        'Locked': _('Đã xử lý')
     }
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # datetime.datetime.now(datetime.timezone.utc)
@@ -96,7 +96,7 @@ class CommentEvaluation(models.Model):
     content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
     STATE_CHOICES = {
         'Pending': _('Chở xử lý'),
-        'Locked': _('Đã xử lý'),
+        'Locked': _('Đã xử lý')
     }
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # datetime.datetime.now(datetime.timezone.utc)
