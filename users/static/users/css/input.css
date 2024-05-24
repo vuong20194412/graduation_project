@@ -9,6 +9,10 @@
     --radio-checked-outline: 2px solid #54A3F8;
     --radio-checked-border-color: #FFFFFF;
 }
+input, textarea, select {
+    font-family: none;
+    font-family: Arial;
+}
 input:not([type=checkbox]):not([type=radio]) {
     box-sizing: border-box;
     height: 40px;
@@ -57,6 +61,7 @@ input[type=checkbox] {
     width: 16px;
     border: 1px solid #000000;
     border-radius: 2px;
+    margin: 0;
 }
 
 input[type=checkbox]:checked {

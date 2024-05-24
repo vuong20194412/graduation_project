@@ -5,11 +5,22 @@ from . import views
 
 app_name = 'practice'
 urlpatterns = [
+    path('question/tag/admin/', views.process_question_tags_by_admin, name='process_question_tags_by_admin'),
+
+    path('user/admin/<int:user_id>/', views.process_user_by_admin, name='process_user_by_admin'),
+    path('user/admin/locked/', views.view_locked_users_by_admin, name='view_locked_users_by_admin'),
+    path('user/admin/', views.view_unlocked_users_by_admin, name='view_unlocked_users_by_admin'),
+
+    path('comment/admin/<int:comment_id>/', views.process_comment_by_admin, name='process_comment_by_admin'),
+    path('comment/admin/hided/', views.view_locked_comments_by_admin, name='view_locked_comments_by_admin'),
+    path('comment/admin/', views.view_unlocked_comments_by_admin, name='view_unlocked_comments_by_admin'),
+
     path('evaluation/new/', views.process_new_evaluation, name='process_new_evaluation'),
     path('evaluation/<int:evaluation_id>/', views.process_evaluation_by_admin, name='process_evaluation_by_admin'),
-    path('evaluation/admin/', views.view_evaluations_by_admin, name='view_evaluations_by_admin'),
+    path('evaluation/admin/processed/', views.view_locked_evaluations_by_admin, name='view_locked_evaluations_by_admin'),
+    path('evaluation/admin/', views.view_unlocked_evaluations_by_admin, name='view_unlocked_evaluations_by_admin'),
 
-    path('profile/<int:profile_id>/', views.process_profile, name='view_profile'),
+    path('profile/<int:profile_id>/', views.process_profile, name='process_profile'),
 
     path('answer/<int:answer_id>/', views.view_detail_answer, name='view_detail_answer'),
     path('answer/new/<int:question_id>', views.process_new_answer, name='process_new_answer'),

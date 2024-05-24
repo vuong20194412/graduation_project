@@ -67,7 +67,11 @@ class User(AbstractBaseUser):
     code = models.CharField(_('mã'), max_length=15, unique=True, )
     email = models.EmailField(_('email'), max_length=255, unique=True, )
     updated_at = models.DateTimeField(_('thời điểm cập nhật gần nhất'), )
-    is_active = models.BooleanField(default=True)
+    STATE_CHOICES = {
+        'Normal': _('Bình thường'),
+        'Locked': _('Đã bị khóa'),
+    }
+    state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
     ROLE_CHOICES = {
         'Admin': _('Quản trị viên'),
         'User': _('Người dùng'),
@@ -95,11 +99,10 @@ class User(AbstractBaseUser):
 
 
 class Log(models.Model):
-    model_name = models.CharField(verbose_name=_('Tên lớp đối tượng'), max_length=255, )
+    model_name = models.CharField(verbose_name=_('tên lớp đối tượng'), max_length=255, )
     object_id = models.IntegerField(verbose_name=_('id đối tượng'), )
     user_id = models.IntegerField(verbose_name=_('id người thực hiện'), )
-    content = models.TextField(verbose_name=_('Nội dung thay đổi'), )
-    # datetime.datetime.now(datetime.timezone.utc)
-    created_at = models.DateTimeField(_('Thời điểm tạo'), )
+    content = models.TextField(verbose_name=_('nội dung thay đổi'), )
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
 
     objects = models.Manager()

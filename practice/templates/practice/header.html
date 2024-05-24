@@ -1,16 +1,43 @@
 <header>
 <div id="id_header_div_user" tabindex="1" title="Nhấp để tới phần quản lý tài khoản.">
-    <a href="{% url 'practice:view_profile' request.user.id %}"><strong>{{user.name|truncatechars:60}}</strong> <em>{{user.code}}</em></a>
+    <a href="{% url 'practice:process_profile' request.user.id %}"><strong>{{user.name|truncatechars:60}}</strong> <em>{{user.code}}</em></a>
 </div>
+    {% if role == 'Admin' %}
+        <nav>
+            {% if not type %}
+                <a href="{% url 'practice:view_unanswered_questions' %}" class="selected_a">Câu hỏi</a>
+            {% else %}
+                <a href="{% url 'practice:view_unanswered_questions' %}">Câu hỏi</a>
+            {% endif %}
+
+            {% if type == 'evaluation' %}
+                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}" class="selected_a">Đánh giá</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá</a>
+            {% endif %}
+
+            {% if type == 'comment' %}
+                <a href="{% url 'practice:view_unlocked_comments_by_admin' %}" class="selected_a">Bình luận</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận</a>
+            {% endif %}
+
+            {% if type == 'user' %}
+                <a href="{% url 'practice:view_unlocked_users_by_admin' %}" class="selected_a">Người dùng</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng</a>
+            {% endif %}
+        </nav>
+    {% endif %}
 <div id="id_header_buttons">
     <!-- button change password -->
-    <a class="button" href="{{change_password_link}}">Đổi mật khẩu</a>
+    <a class="button" href="{% url 'users:change_password' %}">Đổi mật khẩu</a>
     <!-- end button change password -->
     <!-- button logout -->
     <a class="button" id="button_logout" href="#logout_dialog">Đăng Xuất</a>
     <dialog id="logout_dialog"
             onfocus="this.querySelector('form>div>a.button[name=button_cancel]').focus();">
-        <form method="post" action="{{logout_link}}">
+        <form method="post" action="{% url 'users:logout' %}">
             <h2>ĐĂNG XUẤT</h2>
             {% csrf_token %}
             <p>Bạn chắc chắn muốn đăng xuất chứ!</p>
@@ -26,22 +53,97 @@
 </div>
 </header>
 <div id="id_header_nav">
-    <nav>
-        <a href="{% url 'practice:view_unanswered_questions' %}?tid={{current_tag_id}}&limit={{current_limit}}"
-           class="{% if 'practice:view_unanswered_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi chưa làm</a>
-        <a href="{% url 'practice:view_answered_questions' %}?tid={{tag_id}}&limit={{limit}}"
-           class="{% if 'practice:view_answered_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi đã làm</a>
-        <a href="{% url 'practice:view_created_questions' %}?tid={{tag_id}}&limit={{limit}}"
-           class="{% if 'practice:view_created_questions' == current_path_name %}selected_a{% endif %}">Câu hỏi đã tạo</a>
-        {% if role == 'Admin' %}
-            <a href="{% url 'practice:view_pending_questions_by_admin' %}?tid={{current_tag_id}}&limit={{current_limit}}"
-               class="{% if 'practice:view_pending_questions_by_admin' == current_path_name %}selected_a{% endif %}">Câu hỏi chờ duyệt</a>
-            <a href="{% url 'practice:view_locked_questions_by_admin' %}?tid={{tag_id}}&limit={{limit}}"
-               class="{% if 'practice:view_locked_questions_by_admin' == current_path_name %}selected_a{% endif %}">Câu hỏi đã khóa</a>
-            <a href="{% url 'practice:view_approved_questions_by_admin' %}?tid={{tag_id}}&limit={{limit}}"
-               class="{% if 'practice:view_approved_questions_by_admin' == current_path_name %}selected_a{% endif %}">Câu hỏi đã duyệt</a>
-            <a href="{% url 'practice:view_unapproved_questions_by_admin' %}?tid={{tag_id}}&limit={{limit}}"
-               class="{% if 'practice:view_unapproved_questions_by_admin' == current_path_name %}selected_a{% endif %}">Câu hỏi không duyệt</a>
-        {% endif %}
-    </nav>
+    {% if not type %}
+        <nav>
+            {% if role == 'User' %}
+                {% if 'practice:view_unanswered_questions' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi chưa làm</a>
+                {% else %}
+                    <a href="{% url 'practice:view_unanswered_questions' %}">Câu hỏi chưa làm</a>
+                {% endif %}
+
+                {% if 'practice:view_answered_questions' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi đã làm</a>
+                {% else %}
+                    <a href="{% url 'practice:view_answered_questions' %}">Câu hỏi đã làm</a>
+                {% endif %}
+
+                {% if 'practice:view_created_questions' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi đã tạo</a>
+                {% else %}
+                    <a href="{% url 'practice:view_created_questions' %}">Câu hỏi đã tạo</a>
+                {% endif %}
+
+            {% elif role == 'Admin' %}
+                {% if 'practice:view_pending_questions_by_admin' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi chờ duyệt</a>
+                {% else %}
+                    <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi chờ duyệt</a>
+                {% endif %}
+
+                {% if 'practice:view_locked_questions_by_admin' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi đã khóa</a>
+                {% else %}
+                    <a href="{% url 'practice:view_locked_questions_by_admin' %}">Câu hỏi đã khóa</a>
+                {% endif %}
+
+                {% if 'practice:view_approved_questions_by_admin' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi đã duyệt</a>
+                {% else %}
+                    <a href="{% url 'practice:view_approved_questions_by_admin' %}">Câu hỏi đã duyệt</a>
+                {% endif %}
+
+                {% if 'practice:view_unapproved_questions_by_admin' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Câu hỏi không duyệt</a>
+                {% else %}
+                    <a href="{% url 'practice:view_unapproved_questions_by_admin' %}">Câu hỏi không duyệt</a>
+                {% endif %}
+
+                {% if 'practice:process_question_tags_by_admin' == current_path_name %}
+                    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Nhãn câu hỏi</a>
+                {% else %}
+                    <a href="{% url 'practice:process_question_tags_by_admin' %}">Nhãn câu hỏi</a>
+                {% endif %}
+            {% endif %}
+        </nav>
+    {% elif type == 'evaluation' %}
+        <nav>
+            {% if 'practice:view_unlocked_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Đánh giá chờ xử lý</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá chờ xử lý</a>
+            {% endif %}
+            {% if 'practice:view_locked_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Đánh giá đã xử lý</a>
+            {% else %}
+                <a href="{% url 'practice:view_locked_evaluations_by_admin' %}">Đánh giá đã xử lý</a>
+            {% endif %}
+        </nav>
+    {% elif type == 'comment' %}
+        <nav>
+            {% if 'practice:view_unlocked_comments_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Bình luận không ẩn</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận không ẩn</a>
+            {% endif %}
+            {% if 'practice:view_locked_comments_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Bình luận đã ẩn</a>
+            {% else %}
+                <a href="{% url 'practice:view_locked_comments_by_admin' %}">Bình luận đã ẩn</a>
+            {% endif %}
+        </nav>
+    {% elif type == 'user' %}
+        <nav>
+            {% if 'practice:view_unlocked_users_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Người dùng không khóa</a>
+            {% else %}
+                <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng không khóa</a>
+            {% endif %}
+            {% if 'practice:view_locked_users_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Người dùng đã khóa</a>
+            {% else %}
+                <a href="{% url 'practice:view_locked_users_by_admin' %}">Người dùng đã khóa</a>
+            {% endif %}
+        </nav>
+    {% endif %}
 </div>

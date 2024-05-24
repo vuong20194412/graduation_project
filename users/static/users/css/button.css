@@ -23,6 +23,7 @@ button {
     color: var(--button-color);
     text-wrap: nowrap;
     font-family: none;
+    font-family: Arial;
 }
 button:hover {
     background-color: var(--button-hover-background-color);
@@ -74,6 +75,7 @@ a.button {
     text-decoration: none;
     line-height: 16px;
     font-family: none;
+    font-family: Arial;
 }
 a.button:hover {
     background-color: var(--button-hover-background-color);

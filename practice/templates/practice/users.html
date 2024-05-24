@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xem danh sách câu hỏi</title>
+    <title>Người dùng</title>
     <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
     <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
 
@@ -197,7 +197,7 @@
             padding: 4px 8px;
             gap: 4px;
         }
-        main>.in_main .question_addition {
+        main>.in_main .user_addition {
             box-sizing: border-box;
             height: fit-content;
             display: grid;
@@ -237,7 +237,7 @@
         main>.in_main>nav>a.selected_a:hover {
             opacity: 0.6;
         }
-        #limit_question {
+        #limit_user {
             box-sizing: border-box;
             min-width: 160px;
             height: 40px;
@@ -245,7 +245,7 @@
             border: 1px solid #000000;
             position: relative;
         }
-        #limit_question>form {
+        #limit_user>form {
             margin-bottom: 0;
             min-width: 100%;
             display: flex;
@@ -260,7 +260,7 @@
             border-radius: 6px;
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
-        #limit_question:not(:active):not(:focus):not(:focus-within):not(:hover)>form {
+        #limit_user:not(:active):not(:focus):not(:focus-within):not(:hover)>form {
             display: none;
         }
     </style>
@@ -305,7 +305,7 @@
             <div>
                 <h2 class="native">Thông báo</h2>
                 <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{{question_conditions.include_limit_exclude_offset_url}}&offset={{question_conditions.page_offset}}">OK</a>
+                <a autofocus class="button" href="{{user_conditions.include_limit_exclude_offset_url}}&offset={{user_conditions.page_offset}}">OK</a>
             </div>
         </dialog>
     {% endif %}
@@ -313,37 +313,22 @@
         <input type="hidden" id="timezone" name="timezone" value="+00:00" />
     {% endif %}
 
-    {% include 'practice/header.html' with current_path_name=question_conditions.path_name current_include_limit_exclude_offset_url=question_conditions.include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset role=user.role %}
+    {% include 'practice/header.html' with current_path_name=user_conditions.path_name current_include_limit_exclude_offset_url=user_conditions.include_limit_exclude_offset_url current_page_offset=user_conditions.page_offset role=user.role type='user'%}
 
     <!-- content -->
     <div id="content_tag">
-        <aside class="left_aside">
-            <div class="in_left_aside">
-                <nav>
-                    {% for tag in tags %}
-                    <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
-                       href="{% url question_conditions.path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
-                    {% endfor %}
-                    {% if tags %}
-                        <hr/>
-                    {% endif %}
-                </nav>
-            </div>
-        </aside>
-
         <main>
             <div class="in_main">
                 <div style="box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;height:48px;padding: 4px 8px;">
-                    <div id="limit_question" title="Chọn số câu hỏi trên mỗi trang">
+                    <div id="limit_user" title="Chọn số người dùng trên mỗi trang">
                         <div style="height:100%;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
-                            <label>{{question_conditions.limit}} câu hỏi/trang</label>
+                            <label>{{user_conditions.limit}} người dùng/trang</label>
                             <strong>&#9013</strong>
                         </div>
 
-                        <form method="GET" action="{% url question_conditions.path_name %}" title="Chọn số câu hỏi trên mỗi trang">
-                            <input type="hidden" name="tid" value="{{question_conditions.tag_id}}"/>
-                            {% for limit in question_conditions.limits %}
-                                {% if question_conditions.limit != limit %}
+                        <form method="GET" title="Chọn số câu hỏi trên mỗi trang">
+                            {% for limit in user_conditions.limits %}
+                                {% if user_conditions.limit != limit %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit_{{limit}}" type="radio" value="{{limit}}"/>
                                     <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
@@ -355,146 +340,60 @@
                                 </div>
                                 {% endif %}
                             {% endfor %}
-                            <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
+                            <input type="hidden" name="offset" value="{{user_conditions.page_offset}}"/>
                             <button type="submit">OK</button>
                         </form>
                     </div>
-
-                    {% if 'practice:view_created_questions' == question_conditions.path_name %}
-                        <a class="button" href="{% url 'practice:process_new_question' %}">Tạo câu hỏi</a>
-                    {% endif %}
                 </div>
-
                 <div style="box-sizing:border-box;width:100%;height:calc(100vh - 48px - 48px - 48px - 16px);max-height:calc(100vh - 48px - 48px - 48px - 16px);min-height:calc(100vh - 48px - 48px - 48px - 16px);overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;scroll-snap-type:y mandatory;padding: 4px 8px;">
-                    {% for question in questions %}
-                        <div style="box-sizing:border-box;scroll-snap-align:start;
-                                width:100%;height:fit-content;
-                                display:flex;flex-direction:column;
-                                border: 1px solid #000000;border-radius:6px;
-                                padding:3px 8px 0 8px;">
-                            <div style="box-sizing: border-box;
-                                        display: flex; gap: 4px;
-                                        padding-bottom: 3px;">
-                                <strong style="line-height:13px;width:60px;">Câu hỏi:</strong>
-                                <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.content|truncatechars:145}}</label>
+                    {% for profile in users %}
+                    <div style="box-sizing:border-box;scroll-snap-align:start;
+                            width:100%;height:fit-content;
+                            display:flex;flex-direction:column;
+                            border: 1px solid #000000;border-radius:6px;
+                            padding:3px 8px 0 8px;">
+                        <div style="box-sizing: border-box;
+                                    display: flex; gap: 4px;
+                                    padding-bottom: 3px;">
+                            <strong style="line-height:13px;width:80px;">Họ và tên:</strong>
+                            <label style="max-width:calc(100% - 80px);word-break:break-word;">{{profile.name}}</label>
+                        </div>
+                        <div class="user_addition">
+                            <div>
+                                <a class="button" href="{% url 'practice:process_profile' profile.id %}">Xem chi tiết</a>
                             </div>
-                            <div class="question_addition">
-                                <div>
-                                    <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Xem chi tiết</a>
-                                </div>
-                                <div style="display:flex;gap:8px;flex-direction:row-reverse;">
-                                    <div style="display:flex;flex-direction:column;">
-                                        <span>Tác giả: {{question.user.name|truncatechars:60}} <em title="Mã tác giả">{{question.user.code}}</em></span>
-                                        <span>Thời điểm tạo: {{question.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
-                                    </div>
-                                    <div style="display:flex;flex-direction:column;">
-                                        <span>{{question.number_of_answers}} lượt làm</span>
-                                        <span>{{question.number_of_comments}} bình luận</span>
-                                    </div>
+                            <div style="display:flex;gap:8px;flex-direction:row-reverse;">
+                                <div style="display:flex;flex-direction:column;">
+                                    <span>Mã người dùng:<em> {{profile.code}}</em></span>
                                 </div>
                             </div>
                         </div>
-                    {% empty %}
-                        <p>Hiện chưa có câu hỏi nào</p>
-                    {% endfor %}
+                    </div>
+                {% empty %}
+                    <p>Hiện chưa có người dùng nào</p>
+                {% endfor %}
                 </div>
-                {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=question_conditions.include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset current_page_range=question_conditions.page_range current_tid=question_conditions.tag_id current_limit=question_conditions.limit%}
+                {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=user_conditions.include_limit_exclude_offset_url current_page_offset=user_conditions.page_offset current_page_range=user_conditions.page_range current_limit=user_conditions.limit %}
             </div>
         </main>
         <aside class="right_aside">
             <div class="in_right_aside">
-                <form method="GET" action="{% url question_conditions.path_name %}">
-                    <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
-                    <input type="hidden" name="limit" value="{{question_conditions.limit}}">
-                    <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
-                    <input type="hidden" name="type" value="is_filters_and_sorters"/>
+                <form method="GET" action="{% url user_conditions.path_name %}">
+                    <input type="hidden" name="limit" value="{{user_conditions.limit}}">
+                    <input type="hidden" name="offset" value="{{user_conditions.page_offset}}"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Lọc:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_created_at_from">Thời gian tạo:</label>
-                            <input type="datetime-local"
-                                   id="id_filter_by_created_at_from"
-                                   name="filter_by_created_at_from"
-                                   value="{{question_conditions.filter_by_created_at_from}}"
-                                   title="Thời gian tạo (từ)"/>
-                            <label> - </label>
-                            <input type="datetime-local"
-                                   name="filter_by_created_at_to"
-                                   value="{{question_conditions.filter_by_created_at_to}}"
-                                   title="Thời gian tạo (đến)"/>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_title">Nội dung câu hỏi, hashtag:</label>
+                            <label for="id_filter_by_name">người dùng:</label>
                             <input type="text"
-                                   id="id_filter_by_title"
-                                   name="filter_by_title"
-                                   placeholder="Nội dung câu hỏi, hashtag"
-                                   value="{{question_conditions.filter_by_title}}"
+                                   id="id_filter_by_name"
+                                   name="filter_by_name"
+                                   placeholder="người dùng"
+                                   value="{{user_conditions.filter_by_name}}"
                                    title="Ngăn cách các từ khóa bởi dấu phẩy"/>
                             <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa, từ khóa hashtag bắt đầu bởi #
+                                Dùng dấu phẩy để tách biệt các từ khóa
                             </span>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_author">Tên tác giả, mã tác giả:</label>
-                            <input type="text"
-                                   id="id_filter_by_author"
-                                   name="filter_by_author"
-                                   placeholder="Tên tác giả, mã tác giả"
-                                   value="{{question_conditions.filter_by_author}}"
-                                   title="Ngăn cách các từ khóa bởi dấu phẩy. Bắt đầu từ khóa với ký tự # ám chỉ từ khóa về mã tác giả"/>
-                            <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa, từ khóa mã tác giả bắt đầu bởi #
-                            </span>
-                        </div>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
-                        <p style="font-weight:bold;">Sắp xếp:</p>
-                        <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_sorter_with_created_at">Thời gian tạo:</label>
-                            <select id="id_sorter_with_created_at"
-                                    name="sorter_with_created_at"
-                                    title="">
-                                {% if question_conditions.sorter_with_created_at == '-' %}
-                                    <option value=""></option>
-                                    <option value="-" selected>Giảm dần</option>
-                                    <option value="+">Tăng dần</option>
-                                {% elif question_conditions.sorter_with_created_at == '+' %}
-                                    <option value=""></option>
-                                    <option value="-">Giảm dần</option>
-                                    <option value="+" selected>Tăng dần</option>
-                                {% else %}
-                                    <option value=""></option>
-                                    <option value="-">Giảm dần</option>
-                                    <option value="+">Tăng dần</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                        <div style="display:flex;gap:1px;align-items:center;">
-                            {% if question_conditions.sorter_with_decreasing_number_of_answers %}
-                            <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_answers"
-                                   name="sorter_with_decreasing_number_of_answers"
-                                   checked/>
-                            {% else %}
-                            <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_answers"
-                                   name="sorter_with_decreasing_number_of_answers"/>
-                            {% endif %}
-                            <label for="id_sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
-                        </div>
-                        <div style="display:flex;gap:1px;align-items:center;">
-                            {% if question_conditions.sorter_with_decreasing_number_of_comments %}
-                            <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_comments"
-                                   name="sorter_with_decreasing_number_of_comments"
-                                   checked/>
-                            {% else %}
-                            <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_comments"
-                                   name="sorter_with_decreasing_number_of_comments"/>
-                            {% endif %}
-                            <label for="id_sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
                         </div>
                         <div>
                             <button type="submit">Tìm kiếm</button>

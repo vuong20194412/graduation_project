@@ -51,7 +51,7 @@ class UserChangeForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["email", "password", "name", "is_active", "role"]
+        fields = ["email", "password", "name", "state", "role"]
 
     def save(self, commit=True):
         # Save the provided password in hashed format

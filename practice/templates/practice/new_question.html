@@ -3,207 +3,201 @@
 <html lang="vi-vn">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tạo câu hỏi</title>
     <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
     <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
 
-    <style>
-        body {
-            box-sizing: border-box;
-            margin: 0;
-            height: 100vh;
-            width: 100%;
-            max-width: 100vw;
-            background-color: #E6FEF5;
-        }
-
-        h2:not(.native) {
-            box-sizing: border-box;
-            margin: 0;
-        }
-
-        p:not(.native) {
-            box-sizing: border-box;
-            margin: 0;
-        }
-    </style>
-    <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
+    <link rel="stylesheet" href="{% static 'practice/css/generic_setting.css' %}">
     <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
 
     <style>
-        #id_content {
+        #content_tag {
             box-sizing: border-box;
             width: 100%;
-            max-height: calc(100% - 48px);
-            padding: 8px;
-            display: flex;
-            gap: 8px;
+            display: grid;
+            grid-template-columns: 18.75% 62.5% 18.75%;
+        }
+        aside.left_aside {
+          box-sizing: border-box;
+          grid-column-start: 1;
+          grid-column-end: 2;
+          display: flex;
+          flex-direction: column;
+          padding: 8px 0px 8px 8px;
+          background-color: inherit;
         }
         main {
+          box-sizing: border-box;
+          grid-column-start: 2;
+          grid-column-end: 3;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          padding: 8px 8px 8px 8px;
+          background-color: inherit;
+        }
+        aside.right_aside {
+          box-sizing: border-box;
+          grid-column-start: 3;
+          grid-column-end: 4;
+          display: flex;
+          flex-direction: column;
+          padding: 8px 8px 8px 0px;
+          background-color: inherit;
+        }
+        @media only screen and (max-width:800px) {
+          /* For tablets and mobile phones: */
+          aside.left_aside {
+            order: 1;
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 1;
+            grid-row-end: 2;
+            flex-direction: row;
+            padding: 8px 8px 8px 8px;
+          }
+          main {
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 3;
+            grid-row-end: 4;
+            flex-direction: column;
+          }
+          aside.right_aside {
+            order: 2;
+            grid-column-start: 1;
+            grid-column-end: 4;
+            grid-row-start: 2;
+            grid-row-end: 3;
+            flex-direction: column;
+            padding: 8px 8px 8px 8px;
+          }
+        }
+    </style>
+    <style>
+        main>.in_main {
             box-sizing: border-box;
-            width: calc(100% - 416px);
-            max-width: calc(100% - 416px);
-            min-width: calc(100% - 416px);
-            max-height: 100%;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            padding: 10px;
             background-color: #FFFFFF;
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
-
-        main>nav {
+        main>.in_main>form {
             box-sizing: border-box;
-            display: flex;
-            height: 40px;
-            gap: 4px;
-            align-items: center;
-        }
-
-        main>nav>a {
-            box-sizing: border-box;
-            height: 36px;
-            width: 36px;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            background-color: #E7F2FE;
-            text-decoration: none;
-            color: #000000;
-            display: inline-block;
-            text-align: center;
-            line-height: 34px;
-        }
-
-        main>nav>a:visited {
-            color: #000000;
-        }
-
-        main>nav>a.selected_a {
-            border-width: 2px;
-            line-height: 32px;
-            background-color: #6CB0F9;
-            color: #FFFFFF;
-        }
-
-        main>nav>a:not(.selected_a):hover {
-            border-width: 2px;
-            line-height: 32px;
-            background-color: #6CB0F9;
-            opacity: 0.8;
-            color: #FFFFFF;
-        }
-
-        main>nav>a.selected_a:hover {
-            opacity: 0.6;
-        }
-        p {
-            font-family: none;
-        }
-        label:not(.native) {
-            font-size: 13px;
-            font-family: none;
-        }
-        span {
-            font-size: 11px;
-            font-family: none;
-        }
-
-        main>form {
+            width: 100%;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            align-items: start;
+            padding-top: 8px;
         }
-
-        main>form textarea {
+        main>.in_main>form>div.row {
+            box-sizing: border-box;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-left: 8px;
+            padding-right: 8px;
         }
     </style>
 </head>
 <body>
-    {% include 'practice/header.html' with current_path_name='' current_tag_id='' current_limit='' change_password_link=change_password_link logout_link=logout_link role=user.role %}
+    {% if suffix_utc %}
+        <input type="hidden" id="timezone" name="timezone" value="+00:00" />
+    {% endif %}
+    {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role %}
 
     <!-- content -->
-    <div id="id_content" style="justify-content: center;">
-        {% if suffix_utc %}
-            <input type="hidden" id="timezone" name="timezone" value="+00:00" />
-        {% endif %}
-        <main style="height:fit-content;">
-            <form method="POST" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div style="width:100%;display:flex;flex-direction:column;">
-                    <label class="native" for="id_tag_id">{{data.tag_id.label}}:</label>
-                    <select name="tag_id" id="id_tag_id" style="width:fit-content;min-width:200px;">
-                        {% for tag in tags %}
-                            {% if not data.tag.value or data.tag.value != tag.id %}
-                                <option value="{{tag.id}}">{{tag.name}}</option>
-                            {% else %}
-                                <option value="{{tag.id}}" selected>{{tag.name}}</option>
-                            {% endif %}
+    <div id="content_tag">
+        <main>
+            <div class="in_main">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <label class="native" for="id_tag_id">{{data.tag_id.label}}:</label>
+                        <select name="tag_id" id="id_tag_id" style="width:fit-content;min-width:200px;">
+                            {% for tag in tags %}
+                                {% if not data.tag_id.value or data.tag_id.value != tag.id %}
+                                    <option value="{{tag.id}}">{{tag.name}}</option>
+                                {% else %}
+                                    <option value="{{tag.id}}" selected>{{tag.name}}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        {% for error in data.tag_id.errors %}
+                            <p class="error" data-ref="id_tag_id">{{error}}</p>
                         {% endfor %}
-                    </select>
-                </div>
-                {% for error in data.tag_id.errors %}
-                <p class="error" ref="id_tag_id">{{error}}</p>
-                {% endfor %}
+                    </div>
 
-                <div style="width:100%;">
-                    <label class="native" for="id_title">{{data.title.label}}:</label>
-                    <textarea name="title"
-                       id="id_title"
-                       placeholder="{{data.title.label}}"
-                       title="{{data.title.label}}">{{data.title.value}}</textarea>
-                </div>
-                {% for error in data.title.errors %}
-                <p class="error" ref="id_title">{{error}}</p>
-                {% endfor %}
+                    <div class="row">
+                        <label class="native" for="id_hashtags">{{data.hashtags.label}}:</label>
+                        <input name="hashtags"
+                               id="id_hashtags"
+                               placeholder="Ví dụ: hashtag1,hashtag2,hashtag3"
+                               title="{{data.hashtags.label}}"
+                               value="{% for hashtag in data.hashtags.value %}{% if forloop.counter > 1 %},{% endif %}{{hashtag}}{% endfor %}"/>
+                        {% for error in data.hashtags.errors %}
+                            <p class="error" data-ref="id_hashtags">{{error}}</p>
+                        {% endfor %}
+                    </div>
 
-                <div style="width:100%;">
-                    <label class="native" for="id_choices">{{data.choices.label}}:</label>
-                    <div id="id_choices" style="width:100%;padding:0 10px;display:flex;flex-direction:column;align-items:center;gap:4px;">
-                        <style>
-                            :root {
-                                --choices-column2-width: 130px;
-                            }
-                        </style>
-                        <div style="width:calc(100% - 20px);display:flex;align-items:center;">
-                            <div style="width:calc(100% - var(--choices-column2-width));">Lựa chọn</div>
-                            <div style="width:var(--choices-column2-width);">Là lựa chọn đúng?</div>
-                        </div>
-                    {% for choice_value in data.choices.values %}
-                        <div style="width:calc(100% - 20px);display:flex;align-items:center;">
-                            <div style="width:calc(100% - var(--choices-column2-width));">
-                            <textarea name="choice_{{forloop.counter}}">{{choice_value}}</textarea>
+                    <div class="row">
+                        <label class="native" for="id_content">{{data.content.label}}:</label>
+                        <textarea name="content"
+                                  id="id_content"
+                                  placeholder="{{data.content.label}}"
+                                  title="{{data.content.label}}">{{data.content.value}}</textarea>
+                        {% for error in data.content.errors %}
+                            <p class="error" data-ref="id_content">{{error}}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row">
+                        <label class="native" for="id_choices">{{data.choices.label}}:</label>
+                        <div id="id_choices" style="width:100%;padding:0 10px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                            <div style="width:calc(100% - 20px);display:flex;align-items:center;">
+                                <div style="width:calc(100% - 130px);">Lựa chọn</div>
+                                <div style="width:130px;">Là lựa chọn đúng?</div>
                             </div>
-                            <div style="width:var(--choices-column2-width);display:flex;justify-content:center;">
-                            {% if not data.true_choice.value or data.true_choice.value != forloop.counter %}
-                                <input type="radio" name="true_choice" value="{{forloop.counter}}"/>
-                            {% else %}
-                                <input type="radio" name="true_choice" value="{{forloop.counter}}" checked/>
-                            {% endif %}
-                            </div>
+                            {% for choice_value in data.choices.value %}
+                                <div style="width:calc(100% - 20px);display:flex;align-items:center;">
+                                    <div style="width:calc(100% - 130px);">
+                                        <textarea style="width:100%" name="choice_content_{{forloop.counter}}">{{choice_value.content}}</textarea>
+                                    </div>
+                                    <div style="width:130px;display:flex;justify-content:center;">
+                                        {% if not choice_value.is_true %}
+                                            <input type="checkbox" name="choice_is_true_{{forloop.counter}}"/>
+                                        {% else %}
+                                            <input type="checkbox" name="choice_is_true_{{forloop.counter}}" checked/>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
                         </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% for error in data.choices.errors %}
-                <p class="error" ref="id_choices">{{error}}</p>
-            {% endfor %}
-            <div style="width:100%;display:flex;flex-direction:column;">
-                <label class="native" for="id_image">{{data.image.label}}:</label>
-                <input type="file" name="image" id="id_image" accept=".png, .jpg, .jpeg"
-                       title="{{data.image.label}}" style="width:fit-content;min-width:200px;"/>
-            </div>
+                        {% for error in data.choices.errors %}
+                            <p class="error" data-ref="id_choices">{{error}}</p>
+                        {% endfor %}
+                    </div>
 
-                {% for error in data.image.errors %}
-                <p class="error" ref="id_image">{{error}}</p>
-                {% endfor %}
+                    <div class="row">
+                        <label class="native" for="id_image">{{data.image.label}}:</label>
+                        <input type="file" name="image" id="id_image" accept=".png, .jpg, .jpeg"
+                               title="{{data.image.label}}" style="width:fit-content;min-width:200px;"/>
+                        {% for error in data.image.errors %}
+                            <p class="error" data-ref="id_image">{{error}}</p>
+                        {% endfor %}
+                    </div>
 
-                <button type="submit">Tạo</button>
-            </form>
+                    <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
+                        <button type="submit">Tạo</button>
+                    </div>
+                </form>
+            </div>
         </main>
     </div>
     <!-- end content -->
+
+    <script src="{% static 'users\js\input.js' %}"></script>
 </body>
 </html>

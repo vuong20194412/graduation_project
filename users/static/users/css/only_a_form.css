@@ -1,0 +1,56 @@
+:root {
+    --main: #E6FEF5;
+    --form: #FFFFFF;
+    --form-box-shadow: 0px 4px 4px 0px #B3B3B3;
+    --p-error-color: #F5493D;
+}
+body {
+    box-sizing: border-box;
+    margin: 0;
+    height: 100vh;
+}
+main {
+    box-sizing: border-box;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--main);
+}
+form {
+    box-sizing: border-box;
+    width: 396px;
+    height: fit-content;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px 98px;
+    align-items: center;
+    background-color: var(--form);
+    box-shadow: var(--form-box-shadow);
+}
+h2, p {
+    font-family: none;
+    font-family: Arial;
+}
+h2:not(.native) {
+    box-sizing: border-box;
+    margin: 0;
+}
+p:not(.native) {
+    box-sizing: border-box;
+    margin: 0;
+}
+input {
+    min-width: 182px;
+}
+p.error {
+    max-width: 182px;
+}
+p.error.apply {
+    color: var(--p-error-color);
+}
+p[data-ref]{
+    font-size: 11px;
+}
