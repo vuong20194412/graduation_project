@@ -67,15 +67,15 @@ class User(AbstractBaseUser):
     code = models.CharField(_('mã'), max_length=15, unique=True, )
     email = models.EmailField(_('email'), max_length=255, unique=True, )
     updated_at = models.DateTimeField(_('thời điểm cập nhật gần nhất'), )
-    STATE_CHOICES = {
-        'Normal': _('Bình thường'),
-        'Locked': _('Đã bị khóa')
-    }
+    STATE_CHOICES = (
+        ('Normal', _('Bình thường')),
+        ('Locked', _('Đã bị khóa'))
+    )
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
-    ROLE_CHOICES = {
-        'Admin': _('Quản trị viên'),
-        'User': _('Người dùng')
-    }
+    ROLE_CHOICES = (
+        ('Admin', _('Quản trị viên')),
+        ('User', _('Người dùng'))
+    )
     role = models.CharField(_('vai trò'), max_length=255, choices=ROLE_CHOICES, default='User')
     is_staff = models.BooleanField(default=False)
 
