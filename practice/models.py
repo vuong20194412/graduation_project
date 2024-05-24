@@ -19,7 +19,7 @@ class Question(models.Model):
         ('Approved', _('Đã duyệt')),
         ('Locked', _('Đã khóa'))
     )
-    content = models.TextField(_('nội dung câu hỏi'), )
+    content = models.TextField(_('nội dung câu hỏi'), default='')
     state = models.CharField(verbose_name=_('trạng thái câu hỏi'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # [{'content': text, 'is_true': bool}]
     choices = models.JSONField(verbose_name=_('các lựa chọn'), default=list, )
@@ -78,7 +78,7 @@ class Comment(models.Model):
 class QuestionEvaluation(models.Model):
     question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
-    content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
+    content = models.TextField(verbose_name=_('Nội dung đánh giá'), default='')
     STATE_CHOICES = (
         ('Pending', _('Chở xử lý')),
         ('Locked', _('Đã xử lý'))
@@ -93,7 +93,7 @@ class QuestionEvaluation(models.Model):
 class CommentEvaluation(models.Model):
     comment = models.ForeignKey(verbose_name=_('Bình luận'), to=Comment, on_delete=models.CASCADE, )
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
-    content = models.TextField(verbose_name=_('Nội dung đánh giá'), )
+    content = models.TextField(verbose_name=_('Nội dung đánh giá'), default='')
     STATE_CHOICES = (
         ('Pending', _('Chở xử lý')),
         ('Locked', _('Đã xử lý'))
