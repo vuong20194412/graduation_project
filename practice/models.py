@@ -32,7 +32,7 @@ class Question(models.Model):
     image = models.ImageField(verbose_name=_('tên tệp hình ảnh'), upload_to=upload_to, )
     tag = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=QuestionTag, on_delete=models.RESTRICT, )
     user = models.ForeignKey(verbose_name=_('người tạo'), to=get_user_model(), on_delete=models.CASCADE, )
-    hashtags = models.TextField(verbose_name=_('các hashtag'), )
+    hashtags = models.TextField(verbose_name=_('các hashtag'), default='')
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('thời điểm tạo'), )
 
