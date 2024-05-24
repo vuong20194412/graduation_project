@@ -12,7 +12,7 @@ from .models import User
 
 def ensure_is_admin(function=None):
     def wrapper(request, **kwargs):
-        if request.user.is_anonymous:
+        if request.user.is_anonymous or request.user.state == 'Locked':
             return redirect("users:sign_in")
         elif request.user.role != 'Admin':
             return HttpResponseBadRequest()
@@ -22,7 +22,7 @@ def ensure_is_admin(function=None):
 
 def ensure_is_not_anonymous_user(function=None):
     def wrapper(request, **kwargs):
-        if request.user.is_anonymous:
+        if request.user.is_anonymous or request.user.state == 'Locked':
             return redirect("users:sign_in")
         return function(request, **kwargs)
     return wrapper

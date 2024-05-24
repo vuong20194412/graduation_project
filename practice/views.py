@@ -44,7 +44,7 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
     elif limit != request.session.get(limit_of_view_questions_key_name, 4):
         request.session[limit_of_view_questions_key_name] = limit
 
-    if (params.get('type') or '') == 'is_filters_and_sorters':
+    if (params.get('filter') or '') == 'input':
         request.session[f'{path_name}__filters_and_sorters'] = {
             'filter_by_created_at_from': params.get('filter_by_created_at_from'),
             'filter_by_created_at_to': params.get('filter_by_created_at_to'),
@@ -164,6 +164,7 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
 notification_to_view_created_questions_key_name = 'practice.views.view_created_questions__notification'
 notification_to_process_new_question_key_name = 'practice.views.process_new_question__notification'
 notification_to_view_detail_question_key_name = 'practice.views.view_detail_question__notification'
+notification_to_process_profile_key_name = 'practice.views.process_profile___notification'
 
 
 @ensure_is_not_anonymous_user
@@ -282,6 +283,9 @@ def process_profile(request, profile_id):
 
         if request.session.get(prev_adj_url_key_name):
             data['previous_adjacent_url'] = urlsafe_base64_decode(request.session[prev_adj_url_key_name]).decode('utf-8')
+
+        notification = request.session.get(notification_to_process_profile_key_name, '')
+        request.session[notification_to_process_profile_key_name] = ''
 
     return render(request,
                   template_name='practice/profile.html',
@@ -809,12 +813,23 @@ def view_evaluations_by_admin(request, path_name=None, kfilter=None, kexclude=No
     if request.method == 'GET':
         params = request.GET
         limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-        filter_by_content = params.get('filter_by_content')
-        if filter_by_content and filter_by_content != request.session.get(filter_by_content_key_name, ''):
-            request.session[filter_by_content_key_name] = filter_by_content
-        filter_by_content = request.session.get(filter_by_content_key_name, '')
-        offset_in_params = params.get('offset', '')
+
         evaluation_type = params.get('type', '')
+        if evaluation_type != 'comment':
+            evaluation_type = 'question'
+        if (params.get('filter') or '') == 'input':
+            request.session[f'{path_name}.{evaluation_type}__filters_and_sorters'] = {
+                'filter_by_content': params.get('filter_by_content', ''),
+            }
+        elif not request.session.get(f'{path_name}.{evaluation_type}__filters_and_sorters'):
+            request.session[f'{path_name}.{evaluation_type}__filters_and_sorters'] = {
+                'filter_by_content': '',
+            }
+
+        _filters_and_sorters = request.session[f'{path_name}.{evaluation_type}__filters_and_sorters']
+        filter_by_content = _filters_and_sorters['filter_by_content']
+
+        offset_in_params = params.get('offset', '')
     else:
         return HttpResponseBadRequest()
 
@@ -848,6 +863,7 @@ def view_evaluations_by_admin(request, path_name=None, kfilter=None, kexclude=No
             "page_range": range(1, page_count + 1),
             "limits": [4, 8, 16],
             "path_name": path_name,
+            "type": evaluation_type,
             "limit": limit,
             "include_limit_exclude_offset_url": f"{reverse(path_name)}?type={evaluation_type}&limit={limit}",
             "page_offset": page_offset,
@@ -872,15 +888,22 @@ def process_evaluation_by_admin(request, evaluation_id):
 
 
 def view_comments_by_admin(request, path_name=None, kfilter=None, kexclude=None):
-    filter_by_content_key_name = 'practice.views.view_comments_by_admin__filter_by_content'
     offset_in_params = '1'
     if request.method == 'GET':
         params = request.GET
         limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-        filter_by_content = params.get('filter_by_content')
-        if filter_by_content and filter_by_content != request.session.get(filter_by_content_key_name, ''):
-            request.session[filter_by_content_key_name] = filter_by_content
-        filter_by_content = request.session.get(filter_by_content_key_name, '')
+
+        if (params.get('filter') or '') == 'input':
+            request.session[f'{path_name}__filters_and_sorters'] = {
+                'filter_by_content': params.get('filter_by_content', ''),
+            }
+        elif not request.session.get(f'{path_name}__filters_and_sorters'):
+            request.session[f'{path_name}__filters_and_sorters'] = {
+                'filter_by_content': '',
+            }
+        _filters_and_sorters = request.session[f'{path_name}__filters_and_sorters']
+        filter_by_content = _filters_and_sorters['filter_by_content']
+
         offset_in_params = params.get('offset', '')
     else:
         return HttpResponseBadRequest()
@@ -933,15 +956,22 @@ def process_comment_by_admin(request, comment_id):
 
 
 def view_users_by_admin(request, path_name=None, kfilter=None, kexclude=None):
-    filter_by_name_key_name = 'practice.views.view_users_by_admin__filter_by_name'
     offset_in_params = '1'
     if request.method == 'GET':
         params = request.GET
         limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-        filter_by_name = params.get('filter_by_name')
-        if filter_by_name and filter_by_name != request.session.get(filter_by_name_key_name, ''):
-            request.session[filter_by_name_key_name] = filter_by_name
-        filter_by_name = request.session.get(filter_by_name_key_name, '')
+
+        if (params.get('filter') or '') == 'input':
+            request.session[f'{path_name}__filters_and_sorters'] = {
+                'filter_by_name': params.get('filter_by_name', ''),
+            }
+        elif not request.session.get(f'{path_name}__filters_and_sorters'):
+            request.session[f'{path_name}__filters_and_sorters'] = {
+                'filter_by_name': '',
+            }
+        _filters_and_sorters = request.session[f'{path_name}__filters_and_sorters']
+        filter_by_name = _filters_and_sorters['filter_by_name']
+
         offset_in_params = params.get(offset_in_params, '')
     else:
         return HttpResponseBadRequest()
@@ -996,49 +1026,66 @@ def process_user_by_admin(request, user_id):
 
     if request.method == 'POST':
         params = request.POST
-        if params.get('unlock', '') == 'on':
-            if user.state == 'Locked':
-                user.state = 'Normal'
-                user.save()
-        elif params.get('lock', '') == 'on':
-            if user.state == 'Normal':
-                user.state = 'Locked'
-                for s in Session.objects.all():
-                    ds = s.get_decoded()
-                    if s.get_decoded().get('_auth_user_id') == user_id:
-                        s.delete()
-                user.save()
-                #logout all session of this user
+        if params.get('unlock', '') == 'on' and user.state == 'Locked':
+            user.state = 'Normal'
+            user.save()
+            request.session[notification_to_process_profile_key_name] = 'Mở khoá người dùng thành công'
+        elif params.get('lock', '') == 'on' and user.state == 'Normal':
+            user.state = 'Locked'
+            user.save()
+            # logout all session of this user
+            for s in Session.objects.all():
+                raw_session = s.get_decoded()
+                if raw_session.get('_auth_user_id', 0) == user_id:
+                    s.delete()
+                    print(raw_session)
+            request.session[notification_to_process_profile_key_name] = 'Khoá người dùng thành công'
         else:
             return HttpResponseBadRequest()
     else:
         return HttpResponseBadRequest()
 
+    return redirect(to="practice:process_profile", profile_id=user_id)
+
 
 @ensure_is_admin
 def process_question_tags_by_admin(request):
-    filter_by_name_key_name = 'practice.views.process_question_tags_by_admin__filter_by_name'
+    data = {
+        'name': {'errors': [], 'value': '', 'label': _('Nhãn câu hỏi mới')},
+        'errors': [],
+    }
     offset_in_params = '1'
     if request.method == 'GET':
         params = request.GET
         limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-        filter_by_name = params.get('filter_by_name')
-        if filter_by_name and filter_by_name != request.session.get(filter_by_name_key_name, ''):
-            request.session[filter_by_name_key_name] = filter_by_name
-        filter_by_name = request.session.get(filter_by_name_key_name, '')
+
+        if (params.get('filter') or '') == 'input':
+            request.session[f'practice:views.process_question_tags_by_admin__filters_and_sorters'] = {
+                'filter_by_name': params.get('filter_by_name', ''),
+            }
+        elif not request.session.get(f'practice:views.process_question_tags_by_admin__filters_and_sorters'):
+            request.session[f'practice:views.process_question_tags_by_admin__filters_and_sorters'] = {
+                'filter_by_name': '',
+            }
+        _filters_and_sorters = request.session[f'practice:views.process_question_tags_by_admin__filters_and_sorters']
+        filter_by_name = _filters_and_sorters['filter_by_name']
+
         offset_in_params = params.get(offset_in_params, '')
 
     elif request.method == 'POST':
         params = request.POST
         is_valid = True
-        new_name = params.get('name', '')
+        data['name']['value'] = params.get('name', '')
+        new_name = data['name']['value'].strip()
         if not new_name:
             is_valid = False
+            data['name']['errors'].append(_('Nhãn phải có thể đọc.'))
         elif QuestionTag.objects.filter(name=new_name):
             is_valid = False
+            data['name']['errors'].append(_('Nhãn đã tồn tại.'))
 
         if is_valid:
-            qt = QuestionTag(name=new_name)
+            qt = QuestionTag(name=data['name']['value'].strip())
             qt.save()
             filter_by_name = ''
             offset_in_params = '1'
@@ -1068,6 +1115,7 @@ def process_question_tags_by_admin(request):
     return render(request, "practice/question_tags.html", context={
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "question_tags": question_tags,
+        "data": data,
         "question_tag_conditions": {
             "page_range": range(1, page_count + 1),
             "limits": [4, 8, 16],

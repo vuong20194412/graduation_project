@@ -365,6 +365,7 @@
                             <div style="display:flex;gap:8px;flex-direction:row-reverse;">
                                 <div style="display:flex;flex-direction:column;">
                                     <span>Mã người dùng:<em> {{profile.code}}</em></span>
+                                    <span>Thời điểm sửa đổi gần nhất: {{profile.updated_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                 </div>
                             </div>
                         </div>
@@ -381,6 +382,7 @@
                 <form method="GET" action="{% url user_conditions.path_name %}">
                     <input type="hidden" name="limit" value="{{user_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{user_conditions.page_offset}}"/>
+                    <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Lọc:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">

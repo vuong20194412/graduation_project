@@ -3,6 +3,7 @@
 <html lang="vi-vn">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý tài khoản</title>
     <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
     <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
@@ -10,12 +11,12 @@
     <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
 </head>
 <body>
-    {% if notification and not data.readonly %}
+    {% if notification %}
         <dialog id="show_notification_dialog">
             <div>
                 <h2 class="native">Thông báo</h2>
                 <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{% url 'practice:view_profile' request.user.id %}">OK</a>
+                <a autofocus class="button" href="{% url 'practice:process_profile' profile_id %}">OK</a>
             </div>
         </dialog>
     {% endif %}
@@ -52,24 +53,15 @@
                 <div>
                     <p id="id__previous_adjacent_link">
                         {% if data.previous_adjacent_url %}
-                        <noscript>
                             <a href="{{data.previous_adjacent_url}}">Tới trang trước</a>
-                        </noscript>
                         {% endif %}
                     </p>
-                    <script>
-                        if (history.length > 1) {
-                            const previous_adjacent_p = document.querySelector("p#id__previous_adjacent_link");
-                            const previous_adjacent_a = document.createElement("a");
-                            previous_adjacent_a.innerText = "Trở lại trang trước";
-                            previous_adjacent_a.setAttribute("href", "#id_previous_adjacent_link");
-                            previous_adjacent_a.setAttribute("onclick", "history.back();");
-                            previous_adjacent_p.innerText = "";
-                            previous_adjacent_p.appendChild(previous_adjacent_a);
-                        }
-                    </script>
                 </div>
+            {% if user.role == 'Admin' and profile_role != 'Admin' %}
             </form>
+            {% else %}
+            </form>
+            {% endif %}
         {% else %}
         <form method="POST">
             <h2>Quản lý tài khoản</h2>
@@ -110,26 +102,21 @@
                 <button type="submit">Lưu sửa đổi</button>
                 <p id="id_previous_adjacent_link">
                     {% if data.previous_adjacent_url %}
-                    <noscript>
                         <a href="{{data.previous_adjacent_url}}">Tới trang trước</a>
-                    </noscript>
                     {% endif %}
                 </p>
-                <script>
-                    if (history.length > 1) {
-                        const previous_adjacent_p = document.querySelector("p#id_previous_adjacent_link");
-                        const previous_adjacent_a = document.createElement("a");
-                        previous_adjacent_a.innerText = "Trở lại trang trước";
-                        previous_adjacent_a.setAttribute("href", "#id_previous_adjacent_link");
-                        previous_adjacent_a.setAttribute("onclick", "history.back();");
-                        previous_adjacent_p.innerText = "";
-                        previous_adjacent_p.appendChild(previous_adjacent_a);
-                    }
-                </script>
             </div>
         </form>
         {% endif %}
     </main>
+
+    {% if is_reload %}
+        <script>
+            document.addEventListener("DOMContentLoaded", (event) => {
+                history.back();
+            });
+        </script>
+    {% endif %}
 
     {% if not data.readonly %}
         <script src="{% static 'users\js\input.js' %}"></script>

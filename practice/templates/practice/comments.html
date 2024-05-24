@@ -364,6 +364,7 @@
                             </div>
                             <div style="display:flex;gap:8px;flex-direction:row-reverse;">
                                 <div style="display:flex;flex-direction:column;">
+                                    <span>Tác giả: {{comment.user.name|truncatechars:60}} <em title="Mã tác giả">{{comment.user.code}}</em></span>
                                     <span>Thời điểm tạo: {{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                 </div>
                             </div>
@@ -381,15 +382,16 @@
                 <form method="GET" action="{% url comment_conditions.path_name %}">
                     <input type="hidden" name="limit" value="{{comment_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{comment_conditions.page_offset}}"/>
+                    <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Lọc:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_name">bình luận:</label>
+                            <label for="id_filter_by_content">Nội dung bình luận:</label>
                             <input type="text"
-                                   id="id_filter_by_name"
-                                   name="filter_by_name"
-                                   placeholder="bình luận"
-                                   value="{{comment_conditions.filter_by_name}}"
+                                   id="id_filter_by_content"
+                                   name="filter_by_content"
+                                   placeholder="Nội dung bình luận"
+                                   value="{{comment_conditions.filter_by_content}}"
                                    title="Ngăn cách các từ khóa bởi dấu phẩy"/>
                             <span>
                                 Dùng dấu phẩy để tách biệt các từ khóa

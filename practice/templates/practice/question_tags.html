@@ -321,12 +321,21 @@
             <div class="in_main">
                 <div>
                     <h2>Tạo thêm nhãn mới:</h2>
-                    <form style="display:flex;flex-direction:column;" method="POST" title="Tạo thêm nhãn câu hỏi">
+                    <form style="box-sizing:border-box;width:100%;display:flex;flex-direction:column;padding:8px;gap:4px;" method="POST" title="Tạo thêm nhãn câu hỏi">
                         {% csrf_token %}
                         <input type="hidden" name="limit" value="{{question_tag_conditions.limit}}"/>
                         <input type="hidden" name="offset" value="{{question_tag_conditions.page_offset}}"/>
                         <div>
-                            <input type="text" name="name" value="{{question_tag_conditions.name}}"/>
+                            <input style="width:100%;"
+                                   type="text"
+                                   name="name"
+                                   id="id_name"
+                                   placeholder="{{data.name.label}}"
+                                   title="{{data.name.label}}"
+                                   value="{{data.name.value}}"/>
+                            {% for error in data.name.errors %}
+                                <p class="error" data-ref="id_name">{{error}}</p>
+                            {% endfor %}
                         </div>
                         <div>
                             <button type="submit">OK</button>
@@ -363,11 +372,19 @@
                 </div>
                 <div style="box-sizing:border-box;width:100%;height:calc(100vh - 48px - 48px - 48px - 16px);max-height:calc(100vh - 48px - 48px - 48px - 16px);min-height:calc(100vh - 48px - 48px - 48px - 16px);overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;scroll-snap-type:y mandatory;padding: 4px 8px;">
                     {% for question_tag in question_tags %}
-                        <div>
-                            <p>{{question_tag.name}}</p>
+                        <div style="box-sizing:border-box;scroll-snap-align:start;
+                                width:100%;height:fit-content;
+                                display:flex;flex-direction:column;
+                                border: 1px solid #000000;border-radius:6px;
+                                padding:3px 8px 0 8px;">
+                            <div style="box-sizing: border-box;
+                                        display: flex; gap: 4px;
+                                        padding-bottom: 3px;">
+                                <strong style="max-width:calc(100% - 60px);word-break:break-word;">{{question_tag.name}}</strong>
+                            </div>
                         </div>
                     {% empty %}
-                        <p>Hiện chưa có nhãn nào</p>
+                        <p>Hiện chưa có nhãn câu hỏi nào</p>
                     {% endfor %}
                 </div>
                 {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=question_tag_conditions.include_limit_exclude_offset_url current_page_offset=question_tag_conditions.page_offset current_page_range=question_tag_conditions.page_range current_limit=question_tag_conditions.limit %}
@@ -378,6 +395,7 @@
                 <form method="GET" action="{% url 'practice:process_question_tags_by_admin' %}">
                     <input type="hidden" name="limit" value="{{question_tag_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{question_tag_conditions.page_offset}}"/>
+                    <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Lọc:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
@@ -401,5 +419,7 @@
         </aside>
     </div>
     <!-- end content -->
+
+    <script src="{% static 'users\js\input.js' %}"></script>
 </body>
 </html>

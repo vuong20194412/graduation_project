@@ -267,20 +267,22 @@
                     </div>
                 {% endif %}
 
-                <div style="padding:8px;">
-                    {% if past_answers %}
-                        <p>Các câu trả lời trước đó:</p>
-                        {% for past_answer in past_answers %}
-                        <div>
-                            <a href="{% url 'practice:view_detail_answer' past_answer.id %}">
-                                {{past_answer.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}
-                            </a>
-                        </div>
-                        {% endfor %}
-                    {% elif question.state == 'Approved' %}
-                        <p>Bạn chưa trả lời câu hỏi này trước đây.</p>
-                    {% endif %}
-                </div>
+                {% if user.role != 'Admin' %}
+                    <div style="padding:8px;">
+                        {% if past_answers %}
+                            <p>Các câu trả lời trước đó:</p>
+                            {% for past_answer in past_answers %}
+                            <div>
+                                <a href="{% url 'practice:view_detail_answer' past_answer.id %}">
+                                    {{past_answer.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}
+                                </a>
+                            </div>
+                            {% endfor %}
+                        {% elif question.state == 'Approved' %}
+                            <p>Bạn chưa trả lời câu hỏi này trước đây.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </aside>
 

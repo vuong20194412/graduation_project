@@ -18,6 +18,7 @@ header a {
     box-sizing:border-box;
     /* width:336px; */
     height:100%;
+    max-width: 100%;
     padding:0;
     display:flex;
     align-items:center;
@@ -34,10 +35,11 @@ header a {
     line-height: 38px;
     border: 1px solid #000000;
     border-radius: 6px;
-    max-width: 360px;
+    max-width: 100%;
     min-width: 80px;
     color: #000000;
     text-decoration: none;
+    text-wrap: nowrap;
 }
 #div_user>a:visited {
     color: #000000;
@@ -45,17 +47,18 @@ header a {
 
 header>nav {
     box-sizing: border-box;
-    height: 100%;
-    display: flex;
     grid-column-start: 2;
     grid-column-end: 3;
-    overflow: hidden;
+    height: 100%;
+    display: flex;
+    overflow-y: hidden;
     padding: 0 8px;
+    overflow-x: auto;
 }
 header>nav>a {
     box-sizing: border-box;
     display: inline-block;
-    width: 160px;
+    width: 20%;
     height: 48px;
     line-height: 48px;
     text-align: center;
@@ -98,41 +101,31 @@ header>nav>a.selected_a:hover {
     justify-content: flex-end;
 }
 @media only screen and (max-width:800px) {
+  /* For tablets: */
   header {
-    height: 96px;
-  }
-  #id_header_div_user {
-    grid-column-start: 1;
-    grid-column-end: 2;
-    grid-row-start: 1;
-    grid-row-end: 3;
-    overflow: hidden;
-    align-items: flex-start;
-    padding: 4px;
-  }
-  #id_header_div_user>a {
-    height: 88px;
-  }
-  #id_header_buttons {
     height: 48px;
-    grid-column-start: 2;
-    grid-column-end: 4;
-    grid-row-start: 2;
-    grid-row-end: 3;
-    overflow-x: auto;
   }
 }
 @media only screen and (max-width:500px) {
   /* For mobile phones: */
   header {
+    min-height: 96px;
     height: fit-content;
   }
   #id_header_div_user {
     height: 48px;
     justify-content: flex-start;
+    align-items: center;
     grid-column-start: 1;
     grid-column-end: 4;
+    grid-row-start: 1;
+    grid-row-end: 2;
     overflow-x: auto;
+    padding: 0;
+  }
+  #id_header_div_user>a {
+    height: 40px;
+    line-height: 40px;
   }
   header>nav {
     height: 48px;
@@ -141,6 +134,9 @@ header>nav>a.selected_a:hover {
     grid-column-end: 4;
     overflow-x: auto;
     padding: 0;
+  }
+  header>nav>a {
+    width: 25%;
   }
   #id_header_buttons {
     height: 48px;

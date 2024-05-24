@@ -123,15 +123,16 @@
         aside.left_aside>.in_left_aside>nav>a {
             box-sizing: border-box;
             max-width: 100%;
-            height: 40px;
+            height: fit-content;
+            min-height: 40px;
             border-bottom: 1px solid #000000;
             font-weight: bold;
             font-size: 13px;
             color: #000000;
             display: inline-block;
-            line-height: 40px;
+            line-height: 20px;
             text-decoration: none;
-            padding: 0 10px;
+            padding: 10px 10px;
         }
         aside.left_aside>.in_left_aside>nav>a:visited {
             color: #000000;
@@ -407,7 +408,7 @@
                     <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
                     <input type="hidden" name="limit" value="{{question_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
-                    <input type="hidden" name="type" value="is_filters_and_sorters"/>
+                    <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Lọc:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
