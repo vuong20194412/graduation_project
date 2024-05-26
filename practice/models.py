@@ -47,6 +47,9 @@ class Question(models.Model):
                     return False
         return True
 
+    def get_display_hashtags(self):
+        return f'#{(self.hashtags or "").replace(",", " #")}'
+
 
 class Answer(models.Model):
     # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn

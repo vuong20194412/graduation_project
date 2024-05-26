@@ -36,5 +36,7 @@ urlpatterns = [
 
     path('question/created/', views.view_created_questions, name='view_created_questions'),
     path('question/answered/', views.view_answered_questions, name='view_answered_questions'),
-    path('', views.view_unanswered_questions, name='view_unanswered_questions'),
+    path('question/unanswered', views.view_unanswered_questions, name='view_unanswered_questions'),
+
+    path('', views.view_root, name='view_root'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
