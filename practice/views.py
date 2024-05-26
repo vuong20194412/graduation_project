@@ -30,26 +30,39 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
     limit_of_view_questions_key_name = 'practice.views.view_questions__limit'
     params = request.GET
 
+    order_by = []
+    kalias = {}
+    kexclude = kexclude or {}
+    kfilter = kfilter or {}
+
+    tag_id = convert_to_int(string=params.get('tid', ''), default=0)
     tags = QuestionTag.objects.all()
-    if tags:
-        tag_id = convert_to_non_negative_int(string=params.get('tid', ''), default=tags[0].id)
-        if not tags.filter(id=tag_id):
-            tag_id = tags[0].id
-    else:
-        raise Http404()
+    if request.user.role != 'Admin':
+        if tags:
+            if tag_id <= 0 or not tags.filter(id=tag_id):
+                tag_id = tags[0].id
+            kfilter['tag_id'] = tag_id
+        else:
+            raise Http404()
+    elif tag_id != -1:
+        if tag_id <= 0 or not tags.filter(id=tag_id):
+            tag_id = -1
+        kfilter['tag_id'] = tag_id
 
     limit = convert_to_non_negative_int(string=params.get('limit', ''), default=0)
     if not limit:
         limit = request.session.get(limit_of_view_questions_key_name, 4)
-    elif limit != request.session.get(limit_of_view_questions_key_name, 4):
+    elif limit != request.session.get(limit_of_view_questions_key_name, 0):
         request.session[limit_of_view_questions_key_name] = limit
 
     if (params.get('filter') or '') == 'input':
         request.session[f'{path_name}__filters_and_sorters'] = {
             'filter_by_created_at_from': params.get('filter_by_created_at_from'),
             'filter_by_created_at_to': params.get('filter_by_created_at_to'),
-            'filter_by_title': params.get('filter_by_title'),
-            'filter_by_author': params.get('filter_by_author'),
+            'filter_by_content': params.get('filter_by_content'),
+            'filter_by_hashtag': params.get('filter_by_hashtag'),
+            'filter_by_author_name': params.get('filter_by_author_name'),
+            'filter_by_author_code': params.get('filter_by_author_code'),
             'sorter_with_created_at': params.get('sorter_with_created_at'),
             'sorter_with_decreasing_number_of_answers': params.get('sorter_with_decreasing_number_of_answers'),
             'sorter_with_decreasing_number_of_comments': params.get('sorter_with_decreasing_number_of_comments'),
@@ -58,8 +71,10 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
         request.session[f'{path_name}__filters_and_sorters'] = {
             'filter_by_created_at_from': '',
             'filter_by_created_at_to': '',
-            'filter_by_title': '',
-            'filter_by_author': '',
+            'filter_by_content': '',
+            'filter_by_hashtag': '',
+            'filter_by_author_name': '',
+            'filter_by_author_code': '',
             'sorter_with_created_at': '',
             'sorter_with_decreasing_number_of_answers': False,
             'sorter_with_decreasing_number_of_comments': False,
@@ -67,57 +82,46 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
 
     _filters_and_sorters = request.session.get(f'{path_name}__filters_and_sorters')
 
-    kfilter = kfilter or {}
-    kfilter['tag_id'] = tag_id
     created_at_from = _filters_and_sorters['filter_by_created_at_from']
     if created_at_from:
         kfilter['created_at__gte'] = datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f')
     created_at_to = _filters_and_sorters['filter_by_created_at_to']
     if created_at_to:
         kfilter['created_at__lte'] = datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f')
-    titles = _filters_and_sorters['filter_by_title']
-    if titles:
-        contents_and_hashtags = [titles.strip() for titles in titles.split(',')]
-        title_hashtags = []
-        title_contents = []
-        for title in contents_and_hashtags:
-            if title:
-                if title[0] == '#':
-                    title_hashtags.append(title)
-                else:
-                    title_contents.append(title)
-        if title_hashtags:
-            kfilter['hashtags__name__iregex'] = r"^" + ('|'.join(title_hashtags)) + r"[^,]*$"
-        if title_contents:
-            kfilter['content__iregex'] = r"^[^,]*" + ('|'.join(title_contents)) + r"[^,]*$"
-    authors = _filters_and_sorters['filter_by_author']
-    if authors:
-        author_names_and_codes = [author.strip() for author in authors.split(',')]
-        author_codes = []
-        author_names = []
-        for author in author_names_and_codes:
-            if author:
-                if author[0] == '#':
-                    author_codes.append(author)
-                else:
-                    author_names.append(author)
-        if author_codes:
-            kfilter['user__code__iregex'] = r"^" + ('|'.join(author_codes)) + r"[^,]*$"
-        if author_names:
-            kfilter['user__name__iregex'] = r"^[^,]*" + ('|'.join(author_names)) + r"[^,]*$"
 
-    order_by = []
-    kalias = {}
-    order_created_at = _filters_and_sorters['sorter_with_created_at']
-    if order_created_at and order_created_at in ('+', '-'):
-        order_by.append('-created_at' if order_created_at == '-' else 'created_at')
-    if _filters_and_sorters['sorter_with_decreasing_number_of_answers']:
-        kalias['answer__count'] = Count('answer')
-        order_by.append('-answer__count')
+    contents = _filters_and_sorters['filter_by_content']
+    if contents:
+        contents = [content.strip() for content in contents.split(',') if content.strip()]
+        if contents:
+            kfilter['content__iregex'] = r"^.*" + ('|'.join(contents)) + r".*$"
+
+    hashtags = _filters_and_sorters['filter_by_hashtag']
+    if hashtags:
+        hashtags = [hashtag.strip() for hashtag in hashtags.split(',') if hashtag.strip()]
+        if hashtags:
+            kfilter['hashtags__iregex'] = r"^.*" + ('|'.join(hashtags)) + r".*$"
+
+    author_names = _filters_and_sorters['filter_by_author_name']
+    if author_names:
+        author_names = [author_name.strip() for author_name in author_names.split(',') if author_name.strip()]
+        if author_names:
+            kfilter['user__name__iregex'] = r"^.*" + ('|'.join(author_names)) + r".*$"
+
+    author_codes = _filters_and_sorters['filter_by_author_code']
+    if author_codes:
+        author_codes = [author_code.strip() for author_code in author_codes.split(',') if author_code.strip()]
+        if author_codes:
+            kfilter['user__code__iregex'] = r"^.*" + ('|'.join(author_codes)) + r".*$"
+
     if _filters_and_sorters['sorter_with_decreasing_number_of_comments']:
         kalias['comment__count'] = Count('comment')
         order_by.append('-comment__count')
-    kexclude = kexclude or {}
+
+    if _filters_and_sorters['sorter_with_decreasing_number_of_answers']:
+        kalias['answer__count'] = Count('answer')
+        order_by.append('-answer__count')
+
+    order_by.append('created_at' if _filters_and_sorters['sorter_with_created_at'] == '+' else '-created_at')
 
     page_count = math_ceil(Question.objects.filter(**kfilter).exclude(**kexclude).distinct().count() / limit) or 1
 
@@ -150,8 +154,10 @@ def view_questions(request, path_name, kfilter=None, kexclude=None, notification
             "page_offset": page_offset,
             'filter_by_created_at_from': _filters_and_sorters.get('filter_by_created_at_from'),
             'filter_by_created_at_to': _filters_and_sorters.get('filter_by_created_at_to'),
-            'filter_by_title': _filters_and_sorters.get('filter_by_title'),
-            'filter_by_author': _filters_and_sorters.get('filter_by_author'),
+            'filter_by_content': _filters_and_sorters.get('filter_by_content'),
+            'filter_by_hashtag': _filters_and_sorters.get('filter_by_hashtag'),
+            'filter_by_author_name': _filters_and_sorters.get('filter_by_author_name'),
+            'filter_by_author_code': _filters_and_sorters.get('filter_by_author_code'),
             'sorter_with_created_at': _filters_and_sorters.get('sorter_with_created_at'),
             'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get('sorter_with_decreasing_number_of_answers'),
             'sorter_with_decreasing_number_of_comments': _filters_and_sorters.get('sorter_with_decreasing_number_of_comments'),

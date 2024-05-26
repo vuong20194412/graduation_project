@@ -279,11 +279,16 @@
             display: flex;
             flex-direction: column;
             max-width: 100%;
-            width: fit-content;
+            width: 100%;
             align-self: center;
             gap: 8px;
             margin-bottom: 0;
             padding: 8px;
+        }
+        #range_time_2_inputs {
+            display:flex;
+            gap:1px;
+            align-items:center;
         }
         @media only screen and (max-width:800px) {
           /* For tablets: */
@@ -296,6 +301,10 @@
             max-width: 100%;
             min-width: 100%;
             overflow-x: auto;
+          }
+          #range_time_2_inputs {
+            flex-direction: column;
+            align-items: flex-start;
           }
         }
     </style>
@@ -321,11 +330,15 @@
         <aside class="left_aside">
             <div class="in_left_aside">
                 <nav>
+                    {% if user.role == 'Admin' %}
+                        <a class="{% if question_conditions.tag_id == -1 %}selected_a{% endif %}"
+                           href="{% url question_conditions.path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
+                    {% endif %}
                     {% for tag in tags %}
                     <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
                        href="{% url question_conditions.path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
                     {% endfor %}
-                    {% if tags %}
+                    {% if tags or user.role == 'Admin' %}
                         <hr/>
                     {% endif %}
                 </nav>
@@ -410,43 +423,56 @@
                     <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
                     <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
-                        <p style="font-weight:bold;">Lọc:</p>
-                        <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_created_at_from">Thời gian tạo:</label>
+                        <p><strong>Lọc: </strong><span><em>Dùng dấu phẩy để tách biệt các từ khóa.</em></span></p>
+                        <div id="range_time_2_inputs">
+                            <div>
+                                <label for="id_filter_by_created_at_from">Thời gian tạo:</label>
+                            </div>
                             <input type="datetime-local"
                                    id="id_filter_by_created_at_from"
                                    name="filter_by_created_at_from"
                                    value="{{question_conditions.filter_by_created_at_from}}"
                                    title="Thời gian tạo (từ)"/>
-                            <label> - </label>
+                            <div>
+                                <label for="id_filter_by_created_at_to"> - </label>
+                            </div>
                             <input type="datetime-local"
+                                   id="id_filter_by_created_at_to"
                                    name="filter_by_created_at_to"
                                    value="{{question_conditions.filter_by_created_at_to}}"
                                    title="Thời gian tạo (đến)"/>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_title">Nội dung câu hỏi, hashtag:</label>
+                            <label for="id_filter_by_content">Nội dung câu hỏi:</label>
                             <input type="text"
-                                   id="id_filter_by_title"
-                                   name="filter_by_title"
-                                   placeholder="Nội dung câu hỏi, hashtag"
-                                   value="{{question_conditions.filter_by_title}}"
-                                   title="Ngăn cách các từ khóa bởi dấu phẩy"/>
-                            <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa, từ khóa hashtag bắt đầu bởi #
-                            </span>
+                                   id="id_filter_by_content"
+                                   name="filter_by_content"
+                                   placeholder="Nội dung câu hỏi"
+                                   value="{{question_conditions.filter_by_content}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy."/>
+                            <label for="id_filter_by_hashtag">Hashtag:</label>
+                            <input type="text"
+                                   id="id_filter_by_hashtag"
+                                   name="filter_by_hashtag"
+                                   placeholder="Hashtag"
+                                   value="{{question_conditions.filter_by_hashtag}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy."/>
                         </div>
                         <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_author">Tên tác giả, mã tác giả:</label>
+                            <label for="id_filter_by_author_name">Tên tác giả:</label>
                             <input type="text"
-                                   id="id_filter_by_author"
-                                   name="filter_by_author"
-                                   placeholder="Tên tác giả, mã tác giả"
-                                   value="{{question_conditions.filter_by_author}}"
-                                   title="Ngăn cách các từ khóa bởi dấu phẩy. Bắt đầu từ khóa với ký tự # ám chỉ từ khóa về mã tác giả"/>
-                            <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa, từ khóa mã tác giả bắt đầu bởi #
-                            </span>
+                                   id="id_filter_by_author_name"
+                                   name="filter_by_author_name"
+                                   placeholder="Tên tác giả"
+                                   value="{{question_conditions.filter_by_author_name}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy."/>
+                            <label for="id_filter_by_author_code">Mã tác giả:</label>
+                            <input type="text"
+                                   id="id_filter_by_author_code"
+                                   name="filter_by_author_code"
+                                   placeholder="Mã tác giả"
+                                   value="{{question_conditions.filter_by_author_code}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy."/>
                         </div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:3px;">
@@ -456,17 +482,11 @@
                             <select id="id_sorter_with_created_at"
                                     name="sorter_with_created_at"
                                     title="">
-                                {% if question_conditions.sorter_with_created_at == '-' %}
-                                    <option value=""></option>
-                                    <option value="-" selected>Giảm dần</option>
-                                    <option value="+">Tăng dần</option>
-                                {% elif question_conditions.sorter_with_created_at == '+' %}
-                                    <option value=""></option>
+                                {% if question_conditions.sorter_with_created_at == '+' %}
                                     <option value="-">Giảm dần</option>
                                     <option value="+" selected>Tăng dần</option>
                                 {% else %}
-                                    <option value=""></option>
-                                    <option value="-">Giảm dần</option>
+                                    <option value="-" selected>Giảm dần</option>
                                     <option value="+">Tăng dần</option>
                                 {% endif %}
                             </select>
@@ -474,28 +494,30 @@
                         <div style="display:flex;gap:1px;align-items:center;">
                             {% if question_conditions.sorter_with_decreasing_number_of_answers %}
                             <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_answers"
+                                   id="id__sorter_with_decreasing_number_of_answers"
                                    name="sorter_with_decreasing_number_of_answers"
                                    checked/>
+                            <label for="id__sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
                             {% else %}
                             <input type="checkbox"
                                    id="id_sorter_with_decreasing_number_of_answers"
                                    name="sorter_with_decreasing_number_of_answers"/>
-                            {% endif %}
                             <label for="id_sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
+                            {% endif %}
                         </div>
                         <div style="display:flex;gap:1px;align-items:center;">
                             {% if question_conditions.sorter_with_decreasing_number_of_comments %}
                             <input type="checkbox"
-                                   id="id_sorter_with_decreasing_number_of_comments"
+                                   id="id__sorter_with_decreasing_number_of_comments"
                                    name="sorter_with_decreasing_number_of_comments"
                                    checked/>
+                            <label for="id__sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
                             {% else %}
                             <input type="checkbox"
                                    id="id_sorter_with_decreasing_number_of_comments"
                                    name="sorter_with_decreasing_number_of_comments"/>
-                            {% endif %}
                             <label for="id_sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
+                            {% endif %}
                         </div>
                         <div>
                             <button type="submit">Tìm kiếm</button>

@@ -1,6 +1,15 @@
 <header>
 <div id="id_header_div_user" tabindex="1" title="Nhấp để tới phần quản lý tài khoản.">
-    <a href="{% url 'practice:process_profile' request.user.id %}"><strong>{{user.name|truncatechars:60}}</strong> <em>{{user.code}}</em></a>
+    <a href="{% url 'practice:process_profile' request.user.id %}">
+        <strong>
+            <noscript>
+                {{user.name|truncatechars:9}}
+            </noscript>
+            <script>
+                document.querySelector("#id_header_div_user>a>strong").innerText = '{{user.name}}';
+            </script>
+        </strong> <em>{{user.code}}</em>
+    </a>
 </div>
     {% if role == 'Admin' %}
         <nav>

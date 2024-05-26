@@ -106,7 +106,7 @@ header>nav>a.selected_a:hover {
     height: 48px;
   }
 }
-@media only screen and (max-width:500px) {
+@media only screen and (max-width:600px) {
   /* For mobile phones: */
   header {
     min-height: 96px;

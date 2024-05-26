@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 # Create your models here.
 class QuestionTag(models.Model):
-    name = models.CharField(_('tên nhãn câu hỏi'), max_length=255, )
+    name = models.CharField(_('tên nhãn câu hỏi'), max_length=255, unique=True)
 
     objects = models.Manager()
 

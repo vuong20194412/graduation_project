@@ -45,10 +45,12 @@ p:not(.native) {
 input {
     min-width: 182px;
 }
-p.error {
+p[data-ref].error {
+    word-break: break-word;
     max-width: 182px;
+    width: 100%;
 }
-p.error.apply {
+p[data-ref].error.apply {
     color: var(--p-error-color);
 }
 p[data-ref]{
@@ -62,6 +64,7 @@ p[data-ref]{
   form {
     max-width: 396px;
     width: fit-content;
+    align-items: flex-start;
     padding-left: 49px;
     padding-right: 49px;
   }
