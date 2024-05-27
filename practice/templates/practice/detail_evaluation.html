@@ -249,7 +249,7 @@
         </aside>
 
         <main>
-            <div class="in_main">
+            <div class="in_main" autofocus>
 
                 <div id="id_question_author">
                     <p><strong >Người tạo đánh giá: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{evaluation.user.name}}</span>
@@ -269,9 +269,9 @@
                 {% endif %}
                 <div id="id_question">
                     <h2>Phần câu hỏi:</h2>
-                    {% if question.display_hashtags %}
+                    {% if question.get_display_hashtags %}
                         <div class="row">
-                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.display_hashtags}}</p>
+                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.get_display_hashtags}}</p>
                         </div>
                     {% endif %}
                     <div class="row">

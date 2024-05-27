@@ -57,7 +57,8 @@ def view_questions(request, path_name=None, kfilter=None, kexclude=None, notific
     elif tag_id != -1:
         if tag_id <= 0 or not tags.filter(id=tag_id):
             tag_id = -1
-        kfilter['tag_id'] = tag_id
+        else:
+            kfilter['tag_id'] = tag_id
 
     limit = convert_to_non_negative_int(string=params.get('limit', ''), default=0)
     if not limit:
@@ -328,7 +329,17 @@ def process_new_question(request):
         'previous_adjacent_url': '',
     }
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        referer_url = request.META['HTTP_REFERER']
+        s = reverse('practice:view_created_questions')
+        if referer_url and referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))):
+            pattern = re.compile(r'\?tid=[0-9]+')
+            match = re.search(pattern=pattern, string=referer_url)
+            if match:
+                s = match.string[match.regs[0][0] + len('?tid='): match.regs[0][1]]
+                data['tag_id']['value'] = convert_to_non_negative_int(s)
+
+    elif request.method == 'POST':
         is_valid = True
 
         image = request.FILES.get('image')
@@ -564,7 +575,6 @@ def get_comments_in_question(request, question, params, data):
         page_offset = page_count if page_offset == -1 else 1
     offset = (page_offset - 1) * limit
     comments = question.comment_set.filter(state='Normal').order_by('-created_at')[offset:(offset + limit)]
-    question.__setattr__('display_hashtags', f'#{(question.hashtags or "").replace(",", " #")}')
     return {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "showing_comments": True,
@@ -654,7 +664,6 @@ def process_new_question_evaluation(request, question):
     if params.get('coffset') and params.get('climit'):
         context = get_comments_in_question(request=request, question=question, params={'offset': params.get('coffset'), 'limit': params.get('climit')}, data=data)
     else:
-        question.__setattr__('display_hashtags', f'#{(question.hashtags or "").replace(",", " #")}')
         context = {
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
             "question": question,

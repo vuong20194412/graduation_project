@@ -346,7 +346,7 @@
         </aside>
 
         <main>
-            <div class="in_main">
+            <div class="in_main" autofocus>
                 <div style="box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;height:48px;padding: 4px 8px;">
                     <div id="limit_question" title="Chọn số câu hỏi trên mỗi trang">
                         <div style="height:100%;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
@@ -389,8 +389,15 @@
                             <div style="box-sizing: border-box;
                                         display: flex; gap: 4px;
                                         padding-bottom: 3px;">
-                                <strong style="line-height:13px;width:60px;">Câu hỏi:</strong>
-                                <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.content|truncatechars:145}}</label>
+                                <div>
+                                    <span>
+                                        {{question.get_display_hashtags}}
+                                    </span>
+                                    <div>
+                                        <strong style="line-height:13px;width:60px;">Câu hỏi:</strong>
+                                        <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.content|truncatechars:145}}</label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="question_addition">
                                 <div>

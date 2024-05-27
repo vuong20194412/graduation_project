@@ -287,7 +287,7 @@
         </aside>
 
         <main>
-            <div class="in_main">
+            <div class="in_main" autofocus>
                 <div id="id_question_author">
                     <p><strong >Tác giả: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{question.user.name}}</span>
                     </p>
@@ -295,9 +295,9 @@
                     </p>
                 </div>
                 <div id="id_question">
-                    {% if question.display_hashtags %}
+                    {% if question.get_display_hashtags %}
                         <div class="row">
-                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.display_hashtags}}</p>
+                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.get_display_hashtags}}</p>
                         </div>
                     {% endif %}
 
@@ -310,7 +310,7 @@
                         <p>Các lựa chọn:</p>
                         <ol>
                             {% for choice in question.choices %}
-                            <li>{{choice.content}}</li>
+                            <li style="word-break:break-word;">{{choice.content}}</li>
                             {% endfor %}
                         </ol>
                     </div>
