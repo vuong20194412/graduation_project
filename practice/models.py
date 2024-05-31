@@ -13,7 +13,7 @@ def explain(self):
     return '\n'.join(r[0] for r in cursor.fetchall())
 
 
-type.__setattr__(QuerySet, 'explain', explain)
+#type.__setattr__(QuerySet, 'explain', explain)
 
 
 # Create your models here.
