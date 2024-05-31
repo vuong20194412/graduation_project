@@ -6,11 +6,11 @@ from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
 
 
-def explain(self):
-    cursor = connections[self.db].cursor()
-    query, params = self.query.sql_with_params()
-    cursor.execute('explain %s' % query, params)
-    return '\n'.join(r[0] for r in cursor.fetchall())
+# def explain(self):
+#     cursor = connections[self.db].cursor()
+#     query, params = self.query.sql_with_params()
+#     cursor.execute('explain %s' % query, params)
+#     return '\n'.join(r[0] for r in cursor.fetchall())
 
 
 #type.__setattr__(QuerySet, 'explain', explain)
