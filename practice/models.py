@@ -3,19 +3,17 @@ import datetime
 from django.db import models, connections
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
-from django.db.models import Lookup, QuerySet
-from django.db.models import Field
+from django.db.models import QuerySet
 
 
-class QuerySetExplainMixin:
-    def explain(self):
-        cursor = connections[self.db].cursor()
-        query, params = self.query.sql_with_params()
-        cursor.execute('explain %s' % query, params)
-        return '\n'.join(r[0] for r in cursor.fetchall())
+def explain(self):
+    cursor = connections[self.db].cursor()
+    query, params = self.query.sql_with_params()
+    cursor.execute('explain %s' % query, params)
+    return '\n'.join(r[0] for r in cursor.fetchall())
 
 
-QuerySet.__bases__ += (QuerySetExplainMixin,)
+type.__setattr__(QuerySet, 'explain', explain)
 
 
 # Create your models here.
