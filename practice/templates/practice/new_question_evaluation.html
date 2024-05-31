@@ -179,7 +179,7 @@
             <div>
                 <h2 class="native">Thông báo</h2>
                 <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">OK</a>
+                <a autofocus class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}">OK</a>
             </div>
         </dialog>
     {% endif %}
@@ -193,16 +193,32 @@
         <main style="height:fit-content;">
             <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
                 {% csrf_token %}
-                <input type="hidden" name="cid" value="{{comment.id}}">
+                <input type="hidden" name="qid" value="{{question.id}}">
                 <div style="display:flex;justify-content: space-between;padding:4px 0;">
-                    <a class="button" href="{% url 'practice:view_detail_question' comment.question.id %}">Tới trang chi tiết câu hỏi</a>
+                    <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Tới trang chi tiết câu hỏi</a>
                 </div>
                 <div>
-                    Bình luận:
+                    Nội dung câu hỏi:
                 </div>
                 <div>
-                    <p style="padding-left:8px;word-break:break-word;">{{comment.content}}</p>
+                    <p style="padding-left:8px;word-break:break-word;">{{question.content}}</p>
                 </div>
+                {% if question.choices %}
+                    <div class="row">
+                        <p>Các lựa chọn:</p>
+                        <ol>
+                            {% for choice in question.choices %}
+                            <li style="word-break:break-word;">{{choice.content}}</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                    {% endif %}
+
+                    {% if question.image %}
+                    <div class="row">
+                        <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                    </div>
+                    {% endif %}
                 <div>
                     <textarea autofocus
                       id="id_evaluation_content"

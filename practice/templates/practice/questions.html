@@ -409,8 +409,8 @@
                                         <span>Thời điểm tạo: {{question.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                     </div>
                                     <div style="display:flex;flex-direction:column;">
-                                        <span>{{question.number_of_answers}} lượt làm</span>
-                                        <span>{{question.number_of_comments}} bình luận</span>
+                                        <span>{{question.get_number_of_answers}} lượt làm</span>
+                                        <span>{{question.get_number_of_comments}} bình luận</span>
                                     </div>
                                 </div>
                             </div>

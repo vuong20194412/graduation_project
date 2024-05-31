@@ -231,30 +231,30 @@
                     <div style="padding:8px;">
                         <p>Trạng thái câu hỏi: {{question.get_state_display}}</p>
                     {% if question.state == 'Pending' %}
-                        <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                        <form method="POST" action="{% url 'practice:process_question_by_admin' question.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="1"/>
                             <button type="submit">Duyệt</button>
                         </form>
-                        <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                        <form method="POST" action="{% url 'practice:process_question_by_admin' question.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="2"/>
                             <button type="submit">Không duyệt</button>
                         </form>
                     {% elif question.state == 'Approved' %}
-                         <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                         <form method="POST" action="{% url 'practice:process_question_by_admin' question.id %}">
                             {% csrf_token %}
                              <input type="hidden" name="action" value="3"/>
                             <button type="submit">Khóa</button>
                         </form>
                     {% elif question.state == 'Locked' %}
-                        <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                        <form method="POST" action="{% url 'practice:process_question_by_admin' question.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="4"/>
                             <button type="submit">Mở khóa</button>
                         </form>
                     {% elif question.state == 'Unapproved' %}
-                        <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                        <form method="POST" action="{% url 'practice:process_question_by_admin' question.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="5"/>
                             <button type="submit">Duyệt</button>
@@ -323,51 +323,16 @@
                     {% endif %}
                 </div>
 
-                {% if question.state == 'Approved' %}
+                {% if question.state == 'Approved' and user.role != 'Admin' %}
                     <div style="display:flex;gap:8px;padding:8px;background-color:#E4E4E4;">
-                        {% if user.role != 'Admin' %}
-                            <a class="button" href="{% url 'practice:process_new_answer' question.id %}">Trả lời</a>
-                        {% endif %}
+                        <a class="button" href="{% url 'practice:process_new_answer' question.id %}">Trả lời</a>
                         {% if not showing_comments %}
                             <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">Xem bình luận</a>
-                            {% if not showing_evaluation %}
-                                <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}">Tạo đánh giá</a>
-                            {% else %}
-                                <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng tạo Đánh giá</a>
-                            {% endif %}
                         {% else %}
                             <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng xem bình luận</a>
-                            {% if not showing_evaluation %}
-                                <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}&coffset={{comment_conditions.page_offset}}&climit={{comment_conditions.limit}}">Tạo đánh giá</a>
-                            {% else %}
-                                <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">Đóng tạo Đánh giá</a>
-                            {% endif %}
                         {% endif %}
+                        <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}">Tạo đánh giá</a>
                     </div>
-
-                    {% if showing_evaluation %}
-                        <div>
-                            <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
-                                {% csrf_token %}
-                                <input type="hidden" name="qid" value="{{question.id}}"/>
-                                {% if showing_comments %}
-                                    <input type="hidden" name="coffset" value="{{comment_conditions.page_offset}}"/>
-                                    <input type="hidden" name="climit" value="{{comment_conditions.limit}}"/>
-                                {% endif %}
-                                <textarea autofocus
-                                      id="id_evaluation_content"
-                                      name="evaluation_content"
-                                      placeholder="{{data.evaluation_content.label}}"
-                                      title="{{data.evaluation_content.label}}">{{data.evaluation_content.value}}</textarea>
-                                <div style="display:flex;gap:4px;">
-                                    <button type="submit">OK</button>
-                                    {% for error in data.evaluation_content.errors %}
-                                        <p class="error" data-ref="id_evaluation_content">{{error}}</p>
-                                    {% endfor %}
-                                </div>
-                            </form>
-                        </div>
-                    {% endif %}
 
                     {% if showing_comments %}
                         <div id="id_question_comment">
@@ -426,14 +391,8 @@
                                         <div style="display:flex;justify-content:space-between;">
                                             <div>
                                                 <a href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">Đánh giá</a>
-                                                {% if user.role == 'Admin' %}
-                                                    
-                                                {% endif %}
                                             </div>
                                             <div style="display:flex;flex-direction:column;">
-                                                {% if user.role == 'Admin' %}
-                                                    <span>Trạng thái: {{comment.get_state_display}}</span>
-                                                {% endif %}
                                                 <span>{{comment.user.name}} <em>{{comment.user.code}}</em></span>
                                                 <span>{{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                             </div>

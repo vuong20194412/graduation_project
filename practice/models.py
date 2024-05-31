@@ -1,8 +1,21 @@
 import datetime
 
-from django.db import models
+from django.db import models, connections
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.db.models import Lookup, QuerySet
+from django.db.models import Field
+
+
+class QuerySetExplainMixin:
+    def explain(self):
+        cursor = connections[self.db].cursor()
+        query, params = self.query.sql_with_params()
+        cursor.execute('explain %s' % query, params)
+        return '\n'.join(r[0] for r in cursor.fetchall())
+
+
+QuerySet.__bases__ += (QuerySetExplainMixin,)
 
 
 # Create your models here.
@@ -50,6 +63,12 @@ class Question(models.Model):
     def get_display_hashtags(self):
         return f'#{(self.hashtags or "").replace(",", " #")}'
 
+    def get_number_of_answers(self):
+        return self.answer_set.count()
+
+    def get_number_of_comments(self):
+        return self.comment_set.count()
+
 
 class Answer(models.Model):
     # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn
@@ -78,8 +97,9 @@ class Comment(models.Model):
     objects = models.Manager()
 
 
-class QuestionEvaluation(models.Model):
+class Evaluation(models.Model):
     question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
+    comment = models.ForeignKey(verbose_name=_('Bình luận'), to=Comment, on_delete=models.CASCADE, null=True)
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     content = models.TextField(verbose_name=_('Nội dung đánh giá'), default='')
     STATE_CHOICES = (
@@ -89,21 +109,7 @@ class QuestionEvaluation(models.Model):
     state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('Thời điểm tạo'), )
-
-    objects = models.Manager()
-
-
-class CommentEvaluation(models.Model):
-    comment = models.ForeignKey(verbose_name=_('Bình luận'), to=Comment, on_delete=models.CASCADE, )
-    user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
-    content = models.TextField(verbose_name=_('Nội dung đánh giá'), default='')
-    STATE_CHOICES = (
-        ('Pending', _('Chở xử lý')),
-        ('Locked', _('Đã xử lý'))
-    )
-    state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
-    # datetime.datetime.now(datetime.timezone.utc)
-    created_at = models.DateTimeField(_('Thời điểm tạo'), )
+    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), )
 
     objects = models.Manager()
 

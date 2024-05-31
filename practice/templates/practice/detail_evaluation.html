@@ -215,7 +215,7 @@
     {% if suffix_utc %}
         <input type="hidden" id="timezone" name="timezone" value="+00:00"/>
     {% endif %}
-    {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role %}
+    {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role  type='evaluation' %}
 
     <!-- content -->
     <div id="content_tag">
@@ -231,16 +231,10 @@
                     <div style="padding:8px;">
                         <p>Trạng thái đánh giá: {{evaluation.get_state_display}}</p>
                     {% if evaluation.state == 'Pending' %}
-                        <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
+                        <form method="POST" action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="1"/>
                             <button type="submit">Xử lý xong</button>
-                        </form>
-                    {% elif question.state == 'Locked' %}
-                         <form method="POST" action="{% url 'practice:process_detail_question_by_admin' question.id %}">
-                            {% csrf_token %}
-                             <input type="hidden" name="action" value="2"/>
-                            <button type="submit">Chờ xử lý</button>
                         </form>
                     {% endif %}
                     </div>
@@ -250,7 +244,6 @@
 
         <main>
             <div class="in_main" autofocus>
-
                 <div id="id_question_author">
                     <p><strong >Người tạo đánh giá: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{evaluation.user.name}}</span>
                     </p>
@@ -262,10 +255,25 @@
                     <p>{{evaluation.content}}</p>
                 </div>
                 {% if comment %}
-                <div id="id_comment">
-                    <h2>Nội dung phần bình luận:</h2>
-                    <p>{{comment.content}}</p>
-                </div>
+                    {% if evaluation.state == 'Pending' and comment.state != 'Locked' %}
+                         <form method="POST" action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
+                            {% csrf_token %}
+                             <input type="hidden" name="action" value="2"/>
+                            <button type="submit">Khóa bình luận</button>
+                        </form>
+                    {% endif %}
+                    <div id="id_comment">
+                        <h2>Nội dung phần bình luận:</h2>
+                        <p>{{comment.content}}</p>
+                    </div>
+                {% else %}
+                    {% if evaluation.state == 'Pending' and question.state != 'Locked' %}
+                         <form method="POST" action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="3"/>
+                            <button type="submit">Khóa câu hỏi</button>
+                        </form>
+                    {% endif %}
                 {% endif %}
                 <div id="id_question">
                     <h2>Phần câu hỏi:</h2>

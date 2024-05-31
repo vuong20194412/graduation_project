@@ -14,9 +14,9 @@
     {% if role == 'Admin' %}
         <nav>
             {% if not type %}
-                <a href="{% url 'practice:view_unanswered_questions' %}" class="selected_a">Câu hỏi</a>
+                <a href="{% url 'practice:view_pending_questions_by_admin' %}" class="selected_a">Câu hỏi</a>
             {% else %}
-                <a href="{% url 'practice:view_unanswered_questions' %}">Câu hỏi</a>
+                <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi</a>
             {% endif %}
 
             {% if type == 'evaluation' %}
