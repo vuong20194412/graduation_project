@@ -91,6 +91,7 @@ class Comment(models.Model):
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('Thời điểm tạo'), )
+    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), )
 
     objects = models.Manager()
 

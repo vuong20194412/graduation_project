@@ -158,12 +158,12 @@ def process_sign_in(request):
 
 @ensure_is_not_anonymous_user
 def process_logout(request):
-    if request.method == 'POST':
-        logout(request)
-        request.session[notification_to_sign_in_key_name] = "Đăng xuất thành công"
-        return redirect(to="users:sign_in")
+    if request.method != 'POST':
+        return HttpResponseBadRequest()
 
-    return HttpResponseBadRequest()
+    logout(request)
+    request.session[notification_to_sign_in_key_name] = "Đăng xuất thành công"
+    return redirect(to="users:sign_in")
 
 
 @ensure_is_not_anonymous_user

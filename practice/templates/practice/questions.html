@@ -310,20 +310,20 @@
     </style>
 </head>
 <body>
+    {% if suffix_utc %}
+        <input type="hidden" id="timezone" name="timezone" value="+00:00" />
+    {% endif %}
     {% if notification %}
         <dialog id="show_notification_dialog">
             <div>
                 <h2 class="native">Thông báo</h2>
                 <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{{question_conditions.include_limit_exclude_offset_url}}&offset={{question_conditions.page_offset}}">OK</a>
+                <a autofocus class="button" href="{{include_limit_exclude_offset_url}}&offset={{question_conditions.page_offset}}">OK</a>
             </div>
         </dialog>
     {% endif %}
-    {% if suffix_utc %}
-        <input type="hidden" id="timezone" name="timezone" value="+00:00" />
-    {% endif %}
 
-    {% include 'practice/header.html' with current_path_name=question_conditions.path_name current_include_limit_exclude_offset_url=question_conditions.include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset role=user.role %}
+    {% include 'practice/header.html' with current_path_name=path_name current_include_limit_exclude_offset_url=include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset role=user.role %}
 
     <!-- content -->
     <div id="content_tag">
@@ -332,11 +332,11 @@
                 <nav>
                     {% if user.role == 'Admin' %}
                         <a class="{% if question_conditions.tag_id == -1 %}selected_a{% endif %}"
-                           href="{% url question_conditions.path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
+                           href="{% url path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
                     {% endif %}
                     {% for tag in tags %}
-                    <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
-                       href="{% url question_conditions.path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
+                        <a class="{% if question_conditions.tag_id == tag.id %}selected_a{% endif %}"
+                           href="{% url path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
                     {% endfor %}
                     {% if tags or user.role == 'Admin' %}
                         <hr/>
@@ -354,7 +354,7 @@
                             <strong>&#9013</strong>
                         </div>
 
-                        <form method="GET" action="{% url question_conditions.path_name %}" title="Chọn số câu hỏi trên mỗi trang">
+                        <form method="GET" action="{% url path_name %}" title="Chọn số câu hỏi trên mỗi trang">
                             <input type="hidden" name="tid" value="{{question_conditions.tag_id}}"/>
                             {% for limit in question_conditions.limits %}
                                 {% if question_conditions.limit != limit %}
@@ -374,7 +374,7 @@
                         </form>
                     </div>
 
-                    {% if 'practice:view_created_questions' == question_conditions.path_name %}
+                    {% if 'practice:view_created_questions' == path_name %}
                         <a class="button" href="{% url 'practice:process_new_question' %}">Tạo câu hỏi</a>
                     {% endif %}
                 </div>
@@ -419,16 +419,19 @@
                         <p>Hiện chưa có câu hỏi nào</p>
                     {% endfor %}
                 </div>
-                {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=question_conditions.include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset current_page_range=question_conditions.page_range current_tid=question_conditions.tag_id current_limit=question_conditions.limit%}
+
+                {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=include_limit_exclude_offset_url current_page_offset=question_conditions.page_offset current_page_range=question_conditions.page_range current_tid=question_conditions.tag_id current_limit=question_conditions.limit%}
             </div>
         </main>
+
         <aside class="right_aside">
             <div class="in_right_aside">
-                <form method="GET" action="{% url question_conditions.path_name %}">
+                <form method="GET" action="{% url path_name %}">
                     <input type="hidden" name="tag" value="{{question_conditions.tag_id}}">
                     <input type="hidden" name="limit" value="{{question_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{question_conditions.page_offset}}"/>
                     <input type="hidden" name="filter" value="input"/>
+
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p><strong>Lọc: </strong><span><em>Dùng dấu phẩy để tách biệt các từ khóa.</em></span></p>
                         <div id="range_time_2_inputs">
@@ -482,13 +485,14 @@
                                    title="Ngăn cách các từ khóa bởi dấu phẩy."/>
                         </div>
                     </div>
+
                     <div style="display:flex;flex-direction:column;gap:3px;">
                         <p style="font-weight:bold;">Sắp xếp:</p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
                             <label for="id_sorter_with_created_at">Thời gian tạo:</label>
                             <select id="id_sorter_with_created_at"
                                     name="sorter_with_created_at"
-                                    title="">
+                                    title="Sắp xếp theo thời gian tạo">
                                 {% if question_conditions.sorter_with_created_at == '+' %}
                                     <option value="-">Giảm dần</option>
                                     <option value="+" selected>Tăng dần</option>
@@ -500,30 +504,30 @@
                         </div>
                         <div style="display:flex;gap:1px;align-items:center;">
                             {% if question_conditions.sorter_with_decreasing_number_of_answers %}
-                            <input type="checkbox"
+                                <input type="checkbox"
                                    id="id__sorter_with_decreasing_number_of_answers"
                                    name="sorter_with_decreasing_number_of_answers"
                                    checked/>
-                            <label for="id__sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
+                                <label for="id__sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
                             {% else %}
-                            <input type="checkbox"
+                                <input type="checkbox"
                                    id="id_sorter_with_decreasing_number_of_answers"
                                    name="sorter_with_decreasing_number_of_answers"/>
-                            <label for="id_sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
+                                <label for="id_sorter_with_decreasing_number_of_answers">Số người trả lời giảm dần</label>
                             {% endif %}
                         </div>
                         <div style="display:flex;gap:1px;align-items:center;">
                             {% if question_conditions.sorter_with_decreasing_number_of_comments %}
-                            <input type="checkbox"
+                                <input type="checkbox"
                                    id="id__sorter_with_decreasing_number_of_comments"
                                    name="sorter_with_decreasing_number_of_comments"
                                    checked/>
-                            <label for="id__sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
+                                <label for="id__sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
                             {% else %}
-                            <input type="checkbox"
+                                <input type="checkbox"
                                    id="id_sorter_with_decreasing_number_of_comments"
                                    name="sorter_with_decreasing_number_of_comments"/>
-                            <label for="id_sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
+                                <label for="id_sorter_with_decreasing_number_of_answers">Số bình luận giảm dần</label>
                             {% endif %}
                         </div>
                         <div>
