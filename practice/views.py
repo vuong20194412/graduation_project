@@ -1,4 +1,5 @@
 import datetime
+import json
 from math import ceil as math_ceil
 import re
 
@@ -266,7 +267,6 @@ def process_profile(request, profile_id):
         'previous_adjacent_url': '',
         'readonly': False,
     }
-    notification = ''
 
     profile = get_user_model().objects.filter(id=profile_id)
     if not profile:
@@ -277,8 +277,34 @@ def process_profile(request, profile_id):
         data['name']['value'] = profile.name
         data['email']['value'] = profile.email
         data['code']['value'] = profile.code
+        params = request.GET
+        data_in_params = params.get('data')
         if profile_id != request.user.id:
             data['readonly'] = True
+        elif data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'name' in data_in_params and isinstance(data_in_params['name'], dict):
+                    name_errors = data_in_params['name'].get('errors')
+                    if name_errors and isinstance(name_errors, type(data['name']['errors'])):
+                        for name_error in name_errors:
+                            data['name']['errors'].append(_(name_error))
+                    name_value = data_in_params['name'].get('value')
+                    if name_value and isinstance(name_value, type(data['name']['value'])):
+                        data['name']['value'] = name_value
+                if 'email' in data_in_params and isinstance(data_in_params['email'], dict):
+                    email_errors = data_in_params['email'].get('errors')
+                    if email_errors and isinstance(email_errors, type(data['email']['errors'])):
+                        for email_error in email_errors:
+                            data['email']['errors'].append(_(email_error))
+                    email_value = data_in_params['email'].get('value')
+                    if email_value and isinstance(email_value, type(data['email']['value'])):
+                        data['email']['value'] = email_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
 
         data['previous_adjacent_url'] = set_prev_adj_url(request)
 
@@ -298,16 +324,16 @@ def process_profile(request, profile_id):
         email = data['email']['value'].strip()
         if not email:
             is_valid = False
-            data['email']['errors'].append(_('Trường này không được để trống.'))
+            data['email']['errors'].append('Trường này không được để trống.')
         else:
             if len(email) > 255:
                 is_valid = False
-                data['email']['errors'].append(_('Trường này không được nhập quá 255 ký tự.'))
+                data['email']['errors'].append('Trường này không được nhập quá 255 ký tự.')
 
             pattern = re.compile(r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$')
             if not re.match(pattern=pattern, string=email):
                 is_valid = False
-                data['email']['errors'].append(_('Email không đúng định dạng.'))
+                data['email']['errors'].append('Email không đúng định dạng.')
             else:
                 normalize_email = get_user_model().objects.normalize_email(email)
                 if get_user_model().objects.filter(email=normalize_email).exclude(id=request.user.id):
@@ -318,11 +344,11 @@ def process_profile(request, profile_id):
         name = data['name']['value'].strip()
         if not name:
             is_valid = False
-            data['name']['errors'].append(_('Trường này không được để trống.'))
+            data['name']['errors'].append('Trường này không được để trống.')
         else:
             if len(name) > 255:
                 is_valid = False
-                data['name']['errors'].append(_('Trường này không được nhập quá 255 ký tự.'))
+                data['name']['errors'].append('Trường này không được nhập quá 255 ký tự.')
 
         if is_valid:
             has_changed = False
@@ -339,10 +365,14 @@ def process_profile(request, profile_id):
             if has_changed:
                 request.user.save()
 
-            notification = 'Sửa thông tin thành công'
+            request.session[notification_to_process_profile_key_name] = 'Sửa thông tin thành công'
+            return redirect(to='practice:process_profile', profile_id=profile_id)
 
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
-
+        data['name'].pop('label')
+        data['email'].pop('label')
+        data.pop('code')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_profile', args=[profile_id])}?data={data_in_params}")
     else:
         return OriginalHttpResponseBadRequest()
 
@@ -381,6 +411,50 @@ def process_new_question(request):
                 tid = match.string[match.regs[0][0] + len('?tid='): match.regs[0][1]]
                 data['tag_id']['value'] = convert_to_non_negative_int(tid)
 
+        params = request.GET
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'tag_id' in data_in_params and isinstance(data_in_params['tag_id'], dict):
+                    tag_id_errors = data_in_params['tag_id'].get('errors')
+                    if tag_id_errors and isinstance(tag_id_errors, type(data['tag_id']['errors'])):
+                        for tag_id_error in tag_id_errors:
+                            data['tag_id']['errors'].append(_(tag_id_error))
+                    tag_id_value = data_in_params['tag_id'].get('value')
+                    if tag_id_value and isinstance(tag_id_value, type(data['tag_id']['value'])):
+                        data['tag_id']['value'] = tag_id_value
+                if 'hashtags' in data_in_params and isinstance(data_in_params['hashtags'], dict):
+                    hashtags_value = data_in_params['hashtags'].get('value')
+                    if hashtags_value and isinstance(hashtags_value, type(data['hashtags']['value'])):
+                        data['hashtags']['value'] = hashtags_value
+                if 'content' in data_in_params and isinstance(data_in_params['content'], dict):
+                    content_errors = data_in_params['content'].get('errors')
+                    if content_errors and isinstance(content_errors, type(data['content']['errors'])):
+                        for content_error in content_errors:
+                            data['content']['errors'].append(_(content_error))
+                    content_value = data_in_params['content'].get('value')
+                    if content_value and isinstance(content_value, type(data['content']['value'])):
+                        data['content']['value'] = content_value
+                if 'choices' in data_in_params and isinstance(data_in_params['choices'], dict):
+                    choices_errors = data_in_params['choices'].get('errors')
+                    if choices_errors and isinstance(choices_errors, type(data['choices']['errors'])):
+                        for choices_error in choices_errors:
+                            data['choices']['errors'].append(_(choices_error))
+                    choices_value = data_in_params['choices'].get('value')
+                    if choices_value and isinstance(choices_value, type(data['choices']['value'])):
+                        data['choices']['value'] = choices_value
+                if 'image' in data_in_params and isinstance(data_in_params['image'], dict):
+                    image_errors = data_in_params['image'].get('errors')
+                    if image_errors and isinstance(image_errors, type(data['image']['errors'])):
+                        for image_error in image_errors:
+                            data['image']['errors'].append(_(image_error))
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
+
     elif request.method == 'POST':
         is_valid = True
 
@@ -389,12 +463,12 @@ def process_new_question(request):
             limit_image_file_size = 2097152  # 2 * 1024 * 1024
             if image.content_type not in ('image/png', 'image/jpeg'):
                 is_valid = False
-                data['image']['errors'].append(_('Hình ảnh phải là ảnh .png, .jpg hoặc .jpeg'))
+                data['image']['errors'].append('Hình ảnh phải là ảnh .png, .jpg hoặc .jpeg')
                 if image.size >= limit_image_file_size:
-                    data['image']['errors'].append(_('Kích thước hình ảnh phải bé hơn 2MB'))
+                    data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
             elif image.size >= limit_image_file_size:
                 is_valid = False
-                data['image']['errors'].append(_('Kích thước hình ảnh phải bé hơn 2MB'))
+                data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
             else:
                 data['image']['value'] = image
 
@@ -421,20 +495,20 @@ def process_new_question(request):
             choice_order += 1
         if choice_content_count < 2:
             is_valid = False
-            data['choices']['errors'].append(_('Phải có ít nhất 2 lựa chọn có nội dung.'))
+            data['choices']['errors'].append('Phải có ít nhất 2 lựa chọn có nội dung.')
         if true_choice_count < 1:
             is_valid = False
-            data['choices']['errors'].append(_('Phải có ít nhất 1 lựa chọn đúng.'))
+            data['choices']['errors'].append('Phải có ít nhất 1 lựa chọn đúng.')
         elif valid_true_choice_count == 0:
             is_valid = False
-            data['choices']['errors'].append(_('Lựa chọn đúng phải là 1 trong các lựa chọn có nội dung'))
+            data['choices']['errors'].append('Lựa chọn đúng phải là 1 trong các lựa chọn có nội dung')
         data['choices']['value'] = choices
 
         data['content']['value'] = params.get('content', '')
         content = data['content']['value'].strip()
         if not content:
             is_valid = False
-            data['content']['errors'].append(_('Trường này không được để trống.'))
+            data['content']['errors'].append('Trường này không được để trống.')
 
         hashtags = params.get('hashtags', '')
         if hashtags:
@@ -444,16 +518,16 @@ def process_new_question(request):
         tag_id = params.get('tag_id', '')
         if not tag_id:
             is_valid = False
-            data['tag_id']['errors'].append(_('Trường này không được để trống.'))
+            data['tag_id']['errors'].append('Trường này không được để trống.')
         else:
             tag_id = convert_to_non_negative_int(string=tag_id)
             data['tag_id']['value'] = tag_id
             if tag_id < 1:
                 is_valid = False
-                data['tag_id']['errors'].append(_('Trường này không được để trống.'))
+                data['tag_id']['errors'].append('Trường này không được để trống.')
             elif not QuestionTag.objects.filter(id=tag_id):
                 is_valid = False
-                data['tag_id']['errors'].append(_('Nhãn này không hợp lệ.'))
+                data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
 
         if is_valid:
             hashtags = set()
@@ -479,12 +553,20 @@ def process_new_question(request):
                          created_at=datetime.datetime.now(datetime.timezone.utc))
             q.save()
 
-            request.session[notification_to_view_created_questions_key_name] = 'Tạo câu hỏi thành công'
-            return redirect(to=f"{reverse('practice:view_created_questions')}?tid={data['tag_id']['value']}")
+            request.session[notification_to_view_detail_question_key_name] = 'Tạo câu hỏi thành công'
+            return redirect(to='practice:view_detail_question', question_id=q.id)
         elif image and data['image']['value']:
-            data['image']['errors'].append(_('Lưu ý: Ảnh chưa được chọn, chọn ảnh nếu cần thiết.'))
+            data['image']['errors'].append('Lưu ý: Ảnh chưa được chọn, chọn ảnh nếu cần thiết.')
 
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
+        data['tag_id'].pop('label')
+        data['hashtags'].pop('label')
+        data['hashtags'].pop('errors')
+        data['content'].pop('label')
+        data['choices'].pop('label')
+        data['image'].pop('label')
+        data['image'].pop('value')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_new_question')}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -512,6 +594,25 @@ def process_new_answer(request, question_id):
     if request.method == 'GET':
         data['previous_adjacent_url'] = set_prev_adj_url(request)
 
+        params = request.GET
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'choices' in data_in_params and isinstance(data_in_params['choices'], dict):
+                    choices_errors = data_in_params['choices'].get('errors')
+                    if choices_errors and isinstance(choices_errors, type(data['choices']['errors'])):
+                        for choices_error in choices_errors:
+                            data['choices']['errors'].append(_(choices_error))
+                    choices_value = data_in_params['choices'].get('value')
+                    if choices_value and isinstance(choices_value, type(data['choices']['value'])):
+                        data['choices']['value'] = choices_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
+
     elif request.method == 'POST':
         is_valid = True
         params = request.POST
@@ -521,14 +622,14 @@ def process_new_answer(request, question_id):
             choice = params.get('choice', '')
             if not choice:
                 is_valid = False
-                data['choices']['errors'].append(_('Phải chọn 1 lựa chọn.'))
+                data['choices']['errors'].append('Phải chọn 1 lựa chọn.')
             else:
                 choice = convert_to_non_negative_int(string=choice)
                 if 1 <= choice <= len(question.choices):
                     data['choices']['value'].append(choice)
                 if not data['choices']['value']:
                     is_valid = False
-                    data['choices']['errors'].append(_('Phải chọn 1 lựa chọn trong các lựa chọn.'))
+                    data['choices']['errors'].append('Phải chọn 1 lựa chọn trong các lựa chọn.')
         else:
             choices = []
             for choice_order in range(1, len(question.choices) + 1):
@@ -537,7 +638,7 @@ def process_new_answer(request, question_id):
                     choices.append(choice)
             if not choices:
                 is_valid = False
-                data['choices']['errors'].append(_('Phải chọn ít nhất 1 lựa chọn.'))
+                data['choices']['errors'].append('Phải chọn ít nhất 1 lựa chọn.')
             else:
                 for choice in choices:
                     choice = convert_to_non_negative_int(string=choice)
@@ -545,7 +646,7 @@ def process_new_answer(request, question_id):
                         data['choices']['value'].append(choice)
                     if not data['choices']['value']:
                         is_valid = False
-                        data['choices']['errors'].append(_('Phải chọn ít nhất 1 lựa chọn trong các lựa chọn.'))
+                        data['choices']['errors'].append('Phải chọn ít nhất 1 lựa chọn trong các lựa chọn.')
 
         if is_valid:
             is_correct = True
@@ -571,7 +672,9 @@ def process_new_answer(request, question_id):
             request.session[notification_to_view_detail_question_key_name] = 'Tạo câu trả lời thành công'
             return redirect(to="practice:view_detail_question", question_id=question_id)
 
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
+        data['choices'].pop('label')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_new_answer', args=[question_id])}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -676,11 +779,29 @@ def process_comments_in_question(request, question_id):
     question = question[0]
 
     data = {
-        'comment_content': {'errors': [], 'value': '', 'label': _('Bình luận mới')},
-        'errors': [],
+        "comment_content": {"errors": [], "value": "", "label": _('Bình luận mới')},
+        "errors": []
     }
 
     if request.method == 'GET':
+        params = request.GET
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'comment_content' in data_in_params and isinstance(data_in_params['comment_content'], dict):
+                    comment_content_errors = data_in_params['comment_content'].get('errors')
+                    if comment_content_errors and isinstance(comment_content_errors, type(data['comment_content']['errors'])):
+                        for comment_content_error in comment_content_errors:
+                            data['comment_content']['errors'].append(_(comment_content_error))
+                    comment_content_value = data_in_params['comment_content'].get('value')
+                    if comment_content_value and isinstance(comment_content_value, type(data['comment_content']['value'])):
+                        data['comment_content']['value'] = comment_content_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
         context = get_comments_in_question(request=request, question=question, params=request.GET, data=data)
 
     elif request.method == 'POST':
@@ -689,11 +810,20 @@ def process_comments_in_question(request, question_id):
         for key in request.POST:
             params[key] = request.POST[key]
 
+        limit = get_limit_for_list(
+            session=request.session,
+            limit_in_params=params.get('limit', ''),
+            limit_key_name='practice.views.get_comments_in_question__limit'
+        )
+
+        page_count = math_ceil(question.comment_set.count() / limit) or 1
+        page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
+
         data['comment_content']['value'] = params.get('comment_content', '')
         comment_content = data['comment_content']['value'].strip()
         if not comment_content:
             is_valid = False
-            data['comment_content']['errors'].append(_('Bình luận phải có thể đọc.'))
+            data['comment_content']['errors'].append('Bình luận phải có thể đọc.')
 
         if is_valid:
             c = Comment(
@@ -701,15 +831,15 @@ def process_comments_in_question(request, question_id):
                 question_id=question.id,
                 user_id=request.user.id,
                 created_at=datetime.datetime.now(datetime.timezone.utc),
-                updated_at = datetime.datetime.now(datetime.timezone.utc)
+                updated_at=datetime.datetime.now(datetime.timezone.utc)
             )
             c.save()
 
-            data['comment_content']['value'] = ''
+            return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={limit}&offset=1")
 
-            params['offset'] = '1'
-
-        context = get_comments_in_question(request=request, question=question, params=params, data=data)
+        data['comment_content'].pop('label')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={limit}&offset={page_offset}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -726,6 +856,26 @@ def process_new_question_evaluation(request, question):
 
     if request.method == 'GET':
         data['previous_adjacent_url'] = set_prev_adj_url(request)
+
+        params = request.GET
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
+                    evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
+                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
+                        for evaluation_content_error in evaluation_content_errors:
+                            data['evaluation_content']['errors'].append(_(evaluation_content_error))
+                    evaluation_content_value = data_in_params['evaluation_content'].get('value')
+                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
+                        data['evaluation_content']['value'] = evaluation_content_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
+
     else:
         params = request.POST
         is_valid = True
@@ -734,7 +884,7 @@ def process_new_question_evaluation(request, question):
         evaluation_content = data['evaluation_content']['value'].strip()
         if not evaluation_content:
             is_valid = False
-            data['evaluation_content']['errors'].append(_('Đánh giá phải có thể đọc.'))
+            data['evaluation_content']['errors'].append('Đánh giá phải có thể đọc.')
 
         if is_valid:
             qe = Evaluation(
@@ -749,7 +899,9 @@ def process_new_question_evaluation(request, question):
             request.session[notification_to_view_detail_question_key_name] = 'Tạo đánh giá câu hỏi thành công'
             return redirect(to="practice:view_detail_question", question_id=question.id)
 
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
+        data['evaluation_content'].pop('label')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_new_evaluation')}?qid={question.id}&data={data_in_params}")
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -768,6 +920,25 @@ def process_new_comment_evaluation(request, comment):
 
     if request.method == 'GET':
         data['previous_adjacent_url'] = set_prev_adj_url(request)
+
+        params = request.GET
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
+                    evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
+                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
+                        for evaluation_content_error in evaluation_content_errors:
+                            data['evaluation_content']['errors'].append(_(evaluation_content_error))
+                    evaluation_content_value = data_in_params['evaluation_content'].get('value')
+                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
+                        data['evaluation_content']['value'] = evaluation_content_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
     else:
         params = request.POST
         is_valid = True
@@ -775,7 +946,7 @@ def process_new_comment_evaluation(request, comment):
         evaluation_content = data['evaluation_content']['value'].strip()
         if not evaluation_content:
             is_valid = False
-            data['evaluation_content']['errors'].append(_('Đánh giá phải có thể đọc.'))
+            data['evaluation_content']['errors'].append('Đánh giá phải có thể đọc.')
 
         if is_valid:
             ce = Evaluation(
@@ -791,7 +962,9 @@ def process_new_comment_evaluation(request, comment):
             request.session[notification_to_view_detail_question_key_name] = 'Tạo đánh giá bình luận thành công'
             return redirect(to="practice:view_detail_question", question_id=comment.question.id)
 
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
+        data['evaluation_content'].pop('label')
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_new_evaluation')}?cid={comment.id}&data={data_in_params}")
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -831,94 +1004,6 @@ def process_new_evaluation(request):
 
 
 # ========================================== Admin ====================================================
-@ensure_is_admin
-def process_question_by_admin(request, question_id):
-    if request.method != 'POST':
-        return OriginalHttpResponseBadRequest()
-
-    question = Question.objects.filter(id=question_id)
-    if not question:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    question = question[0]
-
-    params = request.POST
-    # 1 : Pending -> Approved
-    # 2 : Pending -> Unapproved
-    # 3 : Approved -> Locked
-    # 4 : Locked -> Approved
-    # 5 : Unapproved -> Approved
-    action = convert_to_non_negative_int(string=params.get('action', ''))
-    if action == 1:
-        if question.state == 'Pending':
-            question.state = 'Approved'
-            question.save()
-            lg = Log(
-                model_name='Question',
-                object_id=question_id,
-                user_id=request.user.id,
-                content="Pending -> Approved",
-                created_at=datetime.datetime.now(datetime.timezone.utc)
-            )
-            lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
-    elif action == 2:
-        if question.state == 'Pending':
-            question.state = 'Unapproved'
-            question.save()
-            lg = Log(
-                model_name='Question',
-                object_id=question_id,
-                user_id=request.user.id,
-                content="Pending -> Unapproved",
-                created_at=datetime.datetime.now(datetime.timezone.utc)
-            )
-            lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện không duyệt câu hỏi thành công'
-    elif action == 3:
-        if question.state == 'Approved':
-            question.state = 'Locked'
-            question.save()
-            lg = Log(
-                model_name='Question',
-                object_id=question_id,
-                user_id=request.user.id,
-                content="Approved -> Locked",
-                created_at=datetime.datetime.now(datetime.timezone.utc)
-            )
-            lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện khóa câu hỏi thành công'
-    elif action == 4:
-        if question.state == 'Locked':
-            question.state = 'Approved'
-            question.save()
-            lg = Log(
-                model_name='Question',
-                object_id=question_id,
-                user_id=request.user.id,
-                content="Locked -> Approved",
-                created_at=datetime.datetime.now(datetime.timezone.utc)
-            )
-            lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện mở khóa câu hỏi thành công'
-    elif action == 5:
-        if question.state == 'Unapproved':
-            question.state = 'Approved'
-            question.save()
-            lg = Log(
-                model_name='Question',
-                object_id=question_id,
-                user_id=request.user.id,
-                content="Unapproved -> Approved",
-                created_at=datetime.datetime.now(datetime.timezone.utc)
-            )
-            lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
-    else:
-        return OriginalHttpResponseBadRequest()
-
-    return redirect(to="practice:view_detail_question", question_id=question_id)
-
-
 @ensure_is_admin
 def view_pending_questions_by_admin(request):
     if request.method != 'GET':
@@ -965,6 +1050,104 @@ def view_approved_questions_by_admin(request):
         path_name='practice:view_approved_questions_by_admin',
         filters=[Q(state='Approved')]
     )
+
+
+@ensure_is_admin
+def process_question_by_admin(request, question_id):
+    if request.method != 'POST':
+        return OriginalHttpResponseBadRequest()
+
+    question = Question.objects.filter(id=question_id)
+    if not question:
+        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+    question = question[0]
+
+    params = request.POST
+    # 1 : Pending -> Approved
+    # 2 : Pending -> Unapproved
+    # 3 : Approved -> Locked
+    # 4 : Locked -> Approved
+    # 5 : Unapproved -> Approved
+    action = convert_to_non_negative_int(string=params.get('action', ''))
+    if action == 1:
+        if question.state == 'Pending':
+            question.state = 'Approved'
+            question.save()
+            lg = Log(
+                model_name='Question',
+                object_id=question_id,
+                user_id=request.user.id,
+                content="Pending -> Approved",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
+        else:
+            return HttpResponseBadRequest()
+    elif action == 2:
+        if question.state == 'Pending':
+            question.state = 'Unapproved'
+            question.save()
+            lg = Log(
+                model_name='Question',
+                object_id=question_id,
+                user_id=request.user.id,
+                content="Pending -> Unapproved",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện không duyệt câu hỏi thành công'
+        else:
+            return HttpResponseBadRequest()
+    elif action == 3:
+        if question.state == 'Approved':
+            question.state = 'Locked'
+            question.save()
+            lg = Log(
+                model_name='Question',
+                object_id=question_id,
+                user_id=request.user.id,
+                content="Approved -> Locked",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện khóa câu hỏi thành công'
+        else:
+            return HttpResponseBadRequest()
+    elif action == 4:
+        if question.state == 'Locked':
+            question.state = 'Approved'
+            question.save()
+            lg = Log(
+                model_name='Question',
+                object_id=question_id,
+                user_id=request.user.id,
+                content="Locked -> Approved",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện mở khóa câu hỏi thành công'
+        else:
+            return HttpResponseBadRequest()
+    elif action == 5:
+        if question.state == 'Unapproved':
+            question.state = 'Approved'
+            question.save()
+            lg = Log(
+                model_name='Question',
+                object_id=question_id,
+                user_id=request.user.id,
+                content="Unapproved -> Approved",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
+        else:
+            return HttpResponseBadRequest()
+    else:
+        return OriginalHttpResponseBadRequest()
+
+    return redirect(to="practice:view_detail_question", question_id=question_id)
 
 
 def view_evaluations_by_admin(request, path_name=None, filters=None):
@@ -1057,15 +1240,27 @@ def process_evaluation_by_admin(request, evaluation_id):
     }
     notification = ''
 
-    evaluation = Evaluation.objects.filter(id=evaluation_id)
-    if not evaluation:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    evaluation = evaluation[0]
-
     if request.method == 'GET':
+        evaluation = Evaluation.objects.filter(id=evaluation_id)
+        if not evaluation:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        evaluation = evaluation[0]
+
         data['previous_adjacent_url'] = set_prev_adj_url(request)
 
+        params = request.GET
+        http_code = params.get('http_code')
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
     elif request.method == 'POST':
+        evaluation = Evaluation.objects.filter(id=evaluation_id)
+        if not evaluation:
+            return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=404")
+        evaluation = evaluation[0]
+
         params = request.POST
 
         # action: 1 : Pending -> Locked
@@ -1085,7 +1280,7 @@ def process_evaluation_by_admin(request, evaluation_id):
                     c.save()
                     notification = 'Thực hiện khóa bình luận thành công'
                 else:
-                    return HttpResponseBadRequest()
+                    return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
             elif params.get('action', '') == '3':
                 if not evaluation.comment and evaluation.question.state != 'Locked':
                     q = evaluation.question
@@ -1093,13 +1288,11 @@ def process_evaluation_by_admin(request, evaluation_id):
                     q.save()
                     notification = 'Thực hiện khóa câu hỏi thành công'
                 else:
-                    return HttpResponseBadRequest()
+                    return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
             else:
                 return OriginalHttpResponseBadRequest()
         else:
-            return HttpResponseBadRequest()
-
-        data['previous_adjacent_url'] = get_prev_adj_url(request.session, request_url=request.build_absolute_uri())
+            return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -1374,6 +1567,37 @@ def process_question_tags_by_admin(request):
         filter_by_name = _filters_and_sorters['filter_by_name']
         offset_in_params = params.get('offset', '')
 
+        limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
+
+        kfilter = {}
+        if filter_by_name:
+            names = [name.strip() for name in filter_by_name.split(',') if name.strip()]
+            if names:
+                kfilter['name__iregex'] = r"^.*" + ('|'.join(names)) + r".*$"
+
+        page_count = math_ceil(QuestionTag.objects.filter(**kfilter).count() / limit) or 1
+
+        page_offset = get_page_offset(offset_in_params=offset_in_params, page_count=page_count)
+        offset = (page_offset - 1) * limit
+
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'name' in data_in_params and isinstance(data_in_params['name'], dict):
+                    name_errors = data_in_params['name'].get('errors')
+                    if name_errors and isinstance(name_errors, type(data['name']['errors'])):
+                        for name_error in name_errors:
+                            data['name']['errors'].append(_(name_error))
+                    name_value = data_in_params['name'].get('value')
+                    if name_value and isinstance(name_value, type(data['name']['value'])):
+                        data['name']['value'] = name_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except:
+                pass
+
     elif request.method == 'POST':
         params = request.POST
         is_valid = True
@@ -1382,37 +1606,22 @@ def process_question_tags_by_admin(request):
         new_name = data['name']['value'].strip()
         if not new_name:
             is_valid = False
-            data['name']['errors'].append(_('Nhãn phải có thể đọc.'))
+            data['name']['errors'].append('Nhãn phải có thể đọc.')
         elif QuestionTag.objects.filter(name=new_name):
             is_valid = False
-            data['name']['errors'].append(_('Nhãn đã tồn tại.'))
+            data['name']['errors'].append('Nhãn đã tồn tại.')
 
         if is_valid:
             qt = QuestionTag(name=data['name']['value'].strip())
             qt.save()
-            data['name']['value'] = ''
-            filter_by_name = ''
-            offset_in_params = '1'
+            return redirect(to=f"{reverse('practice:process_new_evaluation')}?limit={params.get('limit', '')}&offset=1")
         else:
-            _filters_and_sorters = request.session[filters_and_sorters_key_name]
-            filter_by_name = _filters_and_sorters['filter_by_name']
-            offset_in_params = params.get('offset', '')
+            data['name'].pop('label')
+            data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+            return redirect(to=f"{reverse('practice:process_new_evaluation')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
-
-    limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-
-    kfilter = {}
-    if filter_by_name:
-        names = [name.strip() for name in filter_by_name.split(',') if name.strip()]
-        if names:
-            kfilter['name__iregex'] = r"^.*" + ('|'.join(names)) + r".*$"
-
-    page_count = math_ceil(QuestionTag.objects.filter(**kfilter).count() / limit) or 1
-
-    page_offset = get_page_offset(offset_in_params=offset_in_params, page_count=page_count)
-    offset = (page_offset - 1) * limit
 
     question_tags = QuestionTag.objects.filter(**kfilter).order_by('-id')[offset:(offset + limit)]
 

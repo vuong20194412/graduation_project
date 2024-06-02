@@ -78,7 +78,7 @@
                        value="{{data.name.value}}"
                        class="{%if data.name.errors %} error {% endif %}"/>
                 {% for error in data.name.errors %}
-                    <p class="error" ref="id_name">{{error}}</p>
+                    <p class="error" data-ref="id_name">{{error}}</p>
                 {% endfor %}
             </div>
             <div>
@@ -92,11 +92,11 @@
                        value="{{data.email.value}}"
                        class="{% if data.email.errors %}error{% endif %}"/>
                 {% for error in data.email.errors %}
-                    <p class="error" ref="id_email">{{error}}</p>
+                    <p class="error" data-ref="id_email">{{error}}</p>
                 {% endfor %}
             </div>
             {% for error in data.errors %}
-                <p ref>{{error}}</p>
+                <p data-ref>{{error}}</p>
             {% endfor %}
             <div style="position:relative;">
                 <button type="submit">Lưu sửa đổi</button>

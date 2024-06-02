@@ -1,4 +1,3 @@
-import logging
 from django.templatetags.static import static
 from django.utils import timezone
 
@@ -61,4 +60,6 @@ class TimezoneMiddleware:
         if 'text/html' in contenttype:
             response.content = (f'<script src={static("users/js/tz_sub_utc_minutes.js")}>'
                                 f'</script>').encode() + response.content
+            # browser must not store html
+            response.headers['Cache-Control'] = 'no-store'
         return response
