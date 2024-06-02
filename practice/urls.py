@@ -11,11 +11,11 @@ urlpatterns = [
     path('user/admin/locked/', views.view_locked_users_by_admin, name='view_locked_users_by_admin'),
     path('user/admin/', views.view_unlocked_users_by_admin, name='view_unlocked_users_by_admin'),
 
+    path('comment/<int:comment_id>/evaluation/new/', views.process_new_comment_evaluation, name='process_new_comment_evaluation'),
     path('comment/admin/<int:comment_id>/', views.process_comment_by_admin, name='process_comment_by_admin'),
     path('comment/admin/hided/', views.view_locked_comments_by_admin, name='view_locked_comments_by_admin'),
     path('comment/admin/', views.view_unlocked_comments_by_admin, name='view_unlocked_comments_by_admin'),
 
-    path('evaluation/new/', views.process_new_evaluation, name='process_new_evaluation'),
     path('evaluation/<int:evaluation_id>/', views.process_evaluation_by_admin, name='process_evaluation_by_admin'),
     path('evaluation/admin/processed/', views.view_locked_evaluations_by_admin, name='view_locked_evaluations_by_admin'),
     path('evaluation/admin/', views.view_unlocked_evaluations_by_admin, name='view_unlocked_evaluations_by_admin'),
@@ -25,6 +25,7 @@ urlpatterns = [
     path('answer/<int:answer_id>/', views.view_detail_answer, name='view_detail_answer'),
     path('answer/new/<int:question_id>', views.process_new_answer, name='process_new_answer'),
 
+    path('question/<int:question_id>/evaluation/new/', views.process_new_question_evaluation, name='process_new_question_evaluation'),
     path('question/<int:question_id>/comment/', views.process_comments_in_question, name='process_comments_in_question'),
     path('question/<int:question_id>', views.view_detail_question, name='view_detail_question'),
     path('question/new/', views.process_new_question, name='process_new_question'),

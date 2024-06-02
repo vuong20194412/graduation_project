@@ -331,7 +331,7 @@
                         {% else %}
                             <a class="button" href="{% url 'practice:view_detail_question' question.id %}">Đóng xem bình luận</a>
                         {% endif %}
-                        <a class="button" href="{% url 'practice:process_new_evaluation' %}?qid={{question.id}}">Tạo đánh giá</a>
+                        <a class="button" href="{% url 'practice:process_new_question_evaluation' question.id %}">Tạo đánh giá</a>
                     </div>
 
                     {% if showing_comments %}
@@ -390,7 +390,7 @@
                                         <p>{{comment.content}}</p>
                                         <div style="display:flex;justify-content:space-between;">
                                             <div>
-                                                <a href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">Đánh giá</a>
+                                                <a href="{% url 'practice:process_new_comment_evaluation' comment.id %}">Đánh giá</a>
                                             </div>
                                             <div style="display:flex;flex-direction:column;">
                                                 <span>{{comment.user.name}} <em>{{comment.user.code}}</em></span>

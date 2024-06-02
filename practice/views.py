@@ -15,7 +15,7 @@ from django.http import HttpResponseBadRequest as OriginalHttpResponseBadRequest
 from django.utils import timezone
 
 from .models import QuestionTag, Question, Answer, Comment, Evaluation
-from users.views import ensure_is_not_anonymous_user, ensure_is_admin
+from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 from users.models import Log
 
 
@@ -52,20 +52,11 @@ def get_limit_for_list(session, limit_in_params: str, limit_key_name: str):
     return limit
 
 
-def get_prev_adj_url(session, request_url: str):
-    encoded_prev_adj_url = session.get(f'{request_url}.encoded_prev_adj_url')
-    if encoded_prev_adj_url:
-        return urlsafe_base64_decode(encoded_prev_adj_url).decode('utf-8')
-    else:
-        return ''
-
-
-def set_prev_adj_url(request):
-    request_url = request.build_absolute_uri()
-    referer_url = request.META['HTTP_REFERER']
-    if referer_url and request_url != referer_url:
-        request.session[f'{request_url}.encoded_prev_adj_url'] = urlsafe_base64_encode(referer_url.encode('utf-8'))
-    return get_prev_adj_url(request.session, request_url)
+# Create your views here.
+notification_to_view_created_questions_key_name = 'practice.views.view_created_questions__notification'
+notification_to_process_new_question_key_name = 'practice.views.process_new_question__notification'
+notification_to_view_detail_question_key_name = 'practice.views.view_detail_question__notification'
+notification_to_process_profile_key_name = 'practice.views.process_profile___notification'
 
 
 def view_questions(request, path_name=None, filters=None, notification=None):
@@ -200,12 +191,6 @@ def view_questions(request, path_name=None, filters=None, notification=None):
     return render(request, template_name='practice/questions.html', context=context)
 
 
-notification_to_view_created_questions_key_name = 'practice.views.view_created_questions__notification'
-notification_to_process_new_question_key_name = 'practice.views.process_new_question__notification'
-notification_to_view_detail_question_key_name = 'practice.views.view_detail_question__notification'
-notification_to_process_profile_key_name = 'practice.views.process_profile___notification'
-
-
 @ensure_is_not_anonymous_user
 def view_created_questions(request):
     if request.method != 'GET':
@@ -259,29 +244,34 @@ def view_root(request):
 
 @ensure_is_not_anonymous_user
 def process_profile(request, profile_id):
-    data = {
-        'name': {'errors': [], 'value': '', 'label': _('Họ và tên')},
-        'email': {'errors': [], 'value': '', 'label': _('Email')},
-        'code': {'value': '', 'label': _('Mã người dùng')},
-        'errors': [],
-        'previous_adjacent_url': '',
-        'readonly': False,
-    }
-
-    profile = get_user_model().objects.filter(id=profile_id)
-    if not profile:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    profile = profile[0]
-
     if request.method == 'GET':
-        data['name']['value'] = profile.name
-        data['email']['value'] = profile.email
-        data['code']['value'] = profile.code
+        notification = request.session.get(notification_to_process_profile_key_name, '')
+        request.session[notification_to_process_profile_key_name] = ''
+
+        profile = get_user_model().objects.filter(id=profile_id)
+        if not profile:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        profile = profile[0]
+
         params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'name': {'errors': [], 'value': profile.name, 'label': _('Họ và tên')},
+            'email': {'errors': [], 'value': profile.email, 'label': _('Email')},
+            'code': {'value': profile.code, 'label': _('Mã người dùng')},
+            'errors': [],
+            'previous_adjacent_url': set_prev_adj_url(request),
+            'readonly': profile.id != request.user.id,
+        }
+
         data_in_params = params.get('data')
-        if profile_id != request.user.id:
-            data['readonly'] = True
-        elif data_in_params:
+        if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
                 if 'name' in data_in_params and isinstance(data_in_params['name'], dict):
@@ -303,22 +293,36 @@ def process_profile(request, profile_id):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
 
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
-
-        notification = request.session.get(notification_to_process_profile_key_name, '')
-        request.session[notification_to_process_profile_key_name] = ''
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            'notification': notification,
+            'profile_id': profile_id,
+            'profile_locked': profile.state == 'Locked',
+            'profile_role': profile.role,
+            'data': data,
+        }
+        return render(request, template_name='practice/profile.html', context=context)
 
     elif request.method == 'POST':
-        if profile_id != request.user.id:
-            return HttpResponseBadRequest()
+        profile = get_user_model().objects.filter(id=profile_id)
+        if not profile:
+            return redirect(to=f"{reverse('practice:process_profile', args=[profile_id])}?http_code=404")
+        profile = profile[0]
+
+        if profile.id != request.user.id:
+            return redirect(to=f"{reverse('practice:process_profile', args=[profile_id])}?http_code=400")
+
+        data = {
+            'name': {'errors': [], 'value': ''},
+            'email': {'errors': [], 'value': ''},
+            'errors': [],
+        }
 
         is_valid = True
         params = request.POST
-
-        data['code']['value'] = request.user.code
 
         data['email']['value'] = params.get('email', '')
         email = data['email']['value'].strip()
@@ -329,16 +333,13 @@ def process_profile(request, profile_id):
             if len(email) > 255:
                 is_valid = False
                 data['email']['errors'].append('Trường này không được nhập quá 255 ký tự.')
-
             pattern = re.compile(r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$')
             if not re.match(pattern=pattern, string=email):
                 is_valid = False
                 data['email']['errors'].append('Email không đúng định dạng.')
-            else:
-                normalize_email = get_user_model().objects.normalize_email(email)
-                if get_user_model().objects.filter(email=normalize_email).exclude(id=request.user.id):
-                    is_valid = False
-                    data['email']['errors'].append('Email đã được đăng ký với tài khoản khác.')
+            elif get_user_model().objects.filter(email=get_user_model().objects.normalize_email(email)).exclude(id=profile.id):
+                is_valid = False
+                data['email']['errors'].append('Email đã được đăng ký với tài khoản khác.')
 
         data['name']['value'] = params.get('name', '')
         name = data['name']['value'].strip()
@@ -353,55 +354,41 @@ def process_profile(request, profile_id):
         if is_valid:
             has_changed = False
 
-            if request.user.name != name:
-                request.user.name = name
+            if profile.name != name:
+                profile.name = name
                 has_changed = True
 
             normalize_email = get_user_model().objects.normalize_email(email)
-            if request.user.email != normalize_email:
-                request.user.email = normalize_email
+            if profile.email != normalize_email:
+                profile.email = normalize_email
                 has_changed = True
 
             if has_changed:
-                request.user.save()
+                profile.save()
 
-            request.session[notification_to_process_profile_key_name] = 'Sửa thông tin thành công'
+            request.session[notification_to_process_profile_key_name] = _("Thực hiện sửa thông tin thành công")
             return redirect(to='practice:process_profile', profile_id=profile_id)
 
-        data['name'].pop('label')
-        data['email'].pop('label')
-        data.pop('code')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
         return redirect(to=f"{reverse('practice:process_profile', args=[profile_id])}?data={data_in_params}")
+
     else:
         return OriginalHttpResponseBadRequest()
-
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        'notification': notification,
-        'profile_id': profile_id,
-        'profile_locked': profile.state == 'Locked',
-        'profile_role': profile.role,
-        'data': data,
-    }
-    return render(request, template_name='practice/profile.html', context=context)
 
 
 @ensure_is_not_anonymous_user
 def process_new_question(request):
-    default_choice = {'content': '', 'is_true': False}
-    data = {
-        'tag_id': {'errors': [], 'value': 0, 'label': _('Nhãn câu hỏi')},
-        'hashtags': {'errors': [], 'value': [], 'label': _('Các hashtag')},
-        'content': {'errors': [], 'value': '', 'label': _('Nội dung câu hỏi')},
-        'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice], 'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng))')},
-        'image': {'errors': [], 'value': '', 'label': _('Hình ảnh (1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB)')},
-        'errors': [],
-        'previous_adjacent_url': '',
-    }
-
     if request.method == 'GET':
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
+        default_choice = {'content': '', 'is_true': False}
+        data = {
+            'tag_id': {'errors': [], 'value': 0, 'label': _('Nhãn câu hỏi')},
+            'hashtags': {'errors': [], 'value': [], 'label': _('Các hashtag')},
+            'content': {'errors': [], 'value': '', 'label': _('Nội dung câu hỏi')},
+            'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice], 'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng))')},
+            'image': {'errors': [], 'value': '', 'label': _('Hình ảnh (1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB)')},
+            'errors': [],
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
 
         referer_url = request.META['HTTP_REFERER']
         if referer_url and referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))):
@@ -452,11 +439,28 @@ def process_new_question(request):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
 
+        context = {
+            'tags': QuestionTag.objects.all(),
+            'data': data,
+        }
+        return render(request, "practice/new_question.html", context)
+
     elif request.method == 'POST':
+        default_choice = {'content': '', 'is_true': False}
+        data = {
+            'tag_id': {'errors': [], 'value': 0},
+            'hashtags': {'value': []},
+            'content': {'errors': [], 'value': ''},
+            'choices': {'errors': [], 'value': []},
+            'image': {'errors': []},
+            'errors': [],
+        }
+
         is_valid = True
+        params = request.POST
 
         image = request.FILES.get('image')
         if image:
@@ -469,10 +473,6 @@ def process_new_question(request):
             elif image.size >= limit_image_file_size:
                 is_valid = False
                 data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
-            else:
-                data['image']['value'] = image
-
-        params = request.POST
 
         choices = []
         choice_order = 1
@@ -482,16 +482,18 @@ def process_new_question(request):
         while f'choice_content_{choice_order}' in params:
             choice_content = params.get(f'choice_content_{choice_order}', '')
             choice_is_true = params.get(f'choice_is_true_{choice_order}', False)
-            choices.append({"content": choice_content, "is_true": choice_is_true})
+            data['choices']['value'].append({"content": choice_content, "is_true": choice_is_true})
+            choice_content = choice_content.strip()
             if choice_is_true:
                 true_choice_count += 1
-            if choice_content.strip():
+            if choice_content:
+                choices.append({"content": choice_content, "is_true": choice_is_true})
                 choice_content_count += 1
                 if choice_is_true:
                     valid_true_choice_count += 1
             choice_order += 1
         while choice_order <= 4:
-            choices.append({"content": "", "is_true": False})
+            data['choices']['value'].append(default_choice)
             choice_order += 1
         if choice_content_count < 2:
             is_valid = False
@@ -502,7 +504,6 @@ def process_new_question(request):
         elif valid_true_choice_count == 0:
             is_valid = False
             data['choices']['errors'].append('Lựa chọn đúng phải là 1 trong các lựa chọn có nội dung')
-        data['choices']['value'] = choices
 
         data['content']['value'] = params.get('content', '')
         content = data['content']['value'].strip()
@@ -512,22 +513,16 @@ def process_new_question(request):
 
         hashtags = params.get('hashtags', '')
         if hashtags:
-            hashtags = hashtags.split(',')
-            data['hashtags']['value'] = hashtags
+            data['hashtags']['value'] = hashtags.split(',')
 
-        tag_id = params.get('tag_id', '')
-        if not tag_id:
+        data['tag_id']['value'] = params.get('tag_id', '')
+        tag_id = convert_to_non_negative_int(string=str(data['tag_id']['value']), default=0)
+        if tag_id == 0:
             is_valid = False
             data['tag_id']['errors'].append('Trường này không được để trống.')
-        else:
-            tag_id = convert_to_non_negative_int(string=tag_id)
-            data['tag_id']['value'] = tag_id
-            if tag_id < 1:
-                is_valid = False
-                data['tag_id']['errors'].append('Trường này không được để trống.')
-            elif not QuestionTag.objects.filter(id=tag_id):
-                is_valid = False
-                data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
+        elif not QuestionTag.objects.filter(id=tag_id):
+            is_valid = False
+            data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
 
         if is_valid:
             hashtags = set()
@@ -535,66 +530,50 @@ def process_new_question(request):
                 hashtag = hashtag.strip()
                 if hashtag:
                     hashtags.add(hashtag)
-            data['hashtags']['value'] = list(hashtags)
-
-            choices = []
-            for choice in data['choices']['value']:
-                choice['content'] = choice['content'].strip()
-                if choice['content']:
-                    choices.append(choice)
 
             q = Question(content=content,
                          state='Pending',
                          choices=choices,
-                         tag_id=data['tag_id']['value'],
+                         tag_id=tag_id,
                          user_id=request.user.id,
-                         image=data['image']['value'],
-                         hashtags=','.join(data['hashtags']['value']),
+                         image=image,
+                         hashtags=','.join(hashtags),
                          created_at=datetime.datetime.now(datetime.timezone.utc))
             q.save()
 
             request.session[notification_to_view_detail_question_key_name] = 'Tạo câu hỏi thành công'
             return redirect(to='practice:view_detail_question', question_id=q.id)
-        elif image and data['image']['value']:
+
+        elif image and not data['image']['errors']:
             data['image']['errors'].append('Lưu ý: Ảnh chưa được chọn, chọn ảnh nếu cần thiết.')
 
-        data['tag_id'].pop('label')
-        data['hashtags'].pop('label')
-        data['hashtags'].pop('errors')
-        data['content'].pop('label')
-        data['choices'].pop('label')
-        data['image'].pop('label')
-        data['image'].pop('value')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
         return redirect(to=f"{reverse('practice:process_new_question')}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
 
-    context = {
-        'data': data,
-        'tags': QuestionTag.objects.all(),
-    }
-    return render(request, "practice/new_question.html", context)
-
 
 @ensure_is_not_anonymous_user
 def process_new_answer(request, question_id):
-    data = {
-        'choices': {'value': [], 'errors': [], 'label': _('Lựa chọn')},
-        'errors': [],
-        'previous_adjacent_url': '',
-    }
-
-    question = Question.objects.filter(id=question_id, state='Approved')
-    if not question:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    question = question[0]
-
     if request.method == 'GET':
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        question = question[0]
 
         params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'choices': {'value': [], 'errors': [], 'label': _('Lựa chọn')},
+            'errors': [],
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
+
         data_in_params = params.get('data')
         if data_in_params:
             try:
@@ -610,10 +589,26 @@ def process_new_answer(request, question_id):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
 
+        context = {
+            'question': question,
+            'data': data,
+        }
+        return render(request, "practice/new_answer.html", context)
+
     elif request.method == 'POST':
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return redirect(to=f"{reverse('practice:process_new_answer')}?http_code=404")
+        question = question[0]
+
+        data = {
+            'choices': {'value': [], 'errors': []},
+            'errors': [],
+        }
+
         is_valid = True
         params = request.POST
 
@@ -672,18 +667,11 @@ def process_new_answer(request, question_id):
             request.session[notification_to_view_detail_question_key_name] = 'Tạo câu trả lời thành công'
             return redirect(to="practice:view_detail_question", question_id=question_id)
 
-        data['choices'].pop('label')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
         return redirect(to=f"{reverse('practice:process_new_answer', args=[question_id])}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
-
-    context = {
-        'data': data,
-        'question': question,
-    }
-    return render(request, "practice/new_answer.html", context)
 
 
 @ensure_is_not_anonymous_user
@@ -691,50 +679,50 @@ def view_detail_question(request, question_id):
     if request.method != 'GET':
         return OriginalHttpResponseBadRequest()
 
-    data = {
-        'previous_adjacent_url': '',
-    }
-
-    if request.user.role == 'Admin':
-        question = get_object_or_404(Question, pk=question_id)
-    else:
-        question = Question.objects.filter(Q(id=question_id), (Q(state='Approved') | Q(user_id=request.user.id)))
-        if not question:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        question = question[0]
-
     notification = request.session.get(notification_to_view_detail_question_key_name, '')
     request.session[notification_to_view_detail_question_key_name] = ''
 
+    if request.user.role != 'Admin':
+        question = Question.objects.filter(Q(id=question_id), (Q(state='Approved') | Q(user_id=request.user.id)))
+    else:
+        question = Question.objects.filter(id=question_id)
+
+    if not question:
+        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+    question = question[0]
+
     past_answers = Answer.objects.filter(user_id=request.user.id, question_id=question_id)
 
-    data['previous_adjacent_url'] = set_prev_adj_url(request)
+    data = {
+        'previous_adjacent_url': set_prev_adj_url(request),
+    }
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "notification": notification,
         "question": question,
-        "data": data,
         "past_answers": past_answers,
+        "data": data,
     }
     return render(request, "practice/detail_question.html", context)
 
 
 @ensure_is_not_anonymous_user
-def view_detail_answer(request, answer_id=None):
+def view_detail_answer(request, answer_id):
     if request.method != 'GET':
         return OriginalHttpResponseBadRequest()
 
-    data = {
-        'previous_adjacent_url': '',
-    }
-
     if request.user.role != 'Admin':
-        answer = get_object_or_404(Answer, pk=answer_id)
+        answer = Answer.objects.filter(id=answer_id)
+        if not answer:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        answer = answer[0]
     else:
         return HttpResponseBadRequest()
 
-    data['previous_adjacent_url'] = set_prev_adj_url(request)
+    data = {
+        'previous_adjacent_url': set_prev_adj_url(request),
+    }
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -744,47 +732,25 @@ def view_detail_answer(request, answer_id=None):
     return render(request, "practice/detail_answer.html", context)
 
 
-def get_comments_in_question(request, question, params, data):
-    limit = get_limit_for_list(
-        session=request.session,
-        limit_in_params=params.get('limit', ''),
-        limit_key_name='practice.views.get_comments_in_question__limit'
-    )
-    page_count = math_ceil(question.comment_set.count() / limit) or 1
-    page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-    offset = (page_offset - 1) * limit
-
-    comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at')[offset:(offset + limit)]
-    return {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "showing_comments": True,
-        "question": question,
-        "comments": comments,
-        "data": data,
-        "comment_conditions": {
-            "page_range": range(1, page_count + 1),
-            "limits": [4, 8, 16],
-            "page_offset": page_offset,
-            "limit": limit,
-            "include_limit_exclude_offset_url": f"{reverse('practice:process_comments_in_question', args=[question.id])}?limit={limit}",
-        },
-    }
-
-
 @ensure_is_not_anonymous_user
 def process_comments_in_question(request, question_id):
-    question = Question.objects.filter(id=question_id, state='Approved')
-    if not question:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    question = question[0]
-
-    data = {
-        "comment_content": {"errors": [], "value": "", "label": _('Bình luận mới')},
-        "errors": []
-    }
-
     if request.method == 'GET':
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        question = question[0]
+
         params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            "comment_content": {"errors": [], "value": "", "label": _('Bình luận mới')},
+            "errors": []
+        }
+
         data_in_params = params.get('data')
         if data_in_params:
             try:
@@ -800,24 +766,49 @@ def process_comments_in_question(request, question_id):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
-        context = get_comments_in_question(request=request, question=question, params=request.GET, data=data)
-
-    elif request.method == 'POST':
-        is_valid = True
-        params = dict()
-        for key in request.POST:
-            params[key] = request.POST[key]
 
         limit = get_limit_for_list(
             session=request.session,
             limit_in_params=params.get('limit', ''),
             limit_key_name='practice.views.get_comments_in_question__limit'
         )
-
         page_count = math_ceil(question.comment_set.count() / limit) or 1
         page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
+        offset = (page_offset - 1) * limit
+
+        comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at')[offset:(offset + limit)]
+
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "showing_comments": True,
+            "question": question,
+            "comments": comments,
+            "data": data,
+            "comment_conditions": {
+                "page_range": range(1, page_count + 1),
+                "limits": [4, 8, 16],
+                "page_offset": page_offset,
+                "limit": limit,
+                "include_limit_exclude_offset_url": f"{reverse('practice:process_comments_in_question', args=[question.id])}?limit={limit}",
+            },
+        }
+        return render(request, "practice/detail_question.html", context)
+
+    elif request.method == 'POST':
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return redirect(to=f"{reverse('practice:process_comments_in_question')}?http_code=404")
+        question = question[0]
+
+        data = {
+            "comment_content": {"errors": [], "value": ""},
+            "errors": []
+        }
+
+        is_valid = True
+        params = request.POST
 
         data['comment_content']['value'] = params.get('comment_content', '')
         comment_content = data['comment_content']['value'].strip()
@@ -835,29 +826,35 @@ def process_comments_in_question(request, question_id):
             )
             c.save()
 
-            return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={limit}&offset=1")
+            return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset=1")
 
-        data['comment_content'].pop('label')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={limit}&offset={page_offset}&data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
 
-    return render(request, "practice/detail_question.html", context)
 
-
-def process_new_question_evaluation(request, question):
-    data = {
-        'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
-        'errors': [],
-        'previous_adjacent_url': '',
-    }
-
+@ensure_is_not_anonymous_user
+def process_new_question_evaluation(request, question_id):
     if request.method == 'GET':
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        question = question[0]
 
         params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
+            'errors': [],
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
+
         data_in_params = params.get('data')
         if data_in_params:
             try:
@@ -873,10 +870,27 @@ def process_new_question_evaluation(request, question):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
 
-    else:
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "question": question,
+            "data": data,
+        }
+        return render(request, "practice/new_question_evaluation.html", context)
+
+    elif request.method == 'POST':
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return redirect(to=f"{reverse('practice:process_new_question_evaluation')}?http_code=404")
+        question = question[0]
+
+        data = {
+            'evaluation_content': {'errors': [], 'value': ''},
+            'errors': [],
+        }
+
         params = request.POST
         is_valid = True
 
@@ -896,32 +910,36 @@ def process_new_question_evaluation(request, question):
             )
             qe.save()
 
-            request.session[notification_to_view_detail_question_key_name] = 'Tạo đánh giá câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo đánh giá câu hỏi thành công")
             return redirect(to="practice:view_detail_question", question_id=question.id)
 
-        data['evaluation_content'].pop('label')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_new_evaluation')}?qid={question.id}&data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_new_question_evaluation', args=[question_id])}?data={data_in_params}")
 
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "question": question,
-        "data": data,
-    }
-    return render(request, "practice/new_question_evaluation.html", context)
+    else:
+        return OriginalHttpResponseBadRequest()
 
 
-def process_new_comment_evaluation(request, comment):
-    data = {
-        'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
-        'errors': [],
-        'previous_adjacent_url': '',
-    }
-
+@ensure_is_not_anonymous_user
+def process_new_comment_evaluation(request, comment_id):
     if request.method == 'GET':
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
+        comment = Comment.objects.filter(id=comment_id, state='Normal')
+        if not comment:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        comment = comment[0]
 
         params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
+            'errors': [],
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
+
         data_in_params = params.get('data')
         if data_in_params:
             try:
@@ -937,11 +955,30 @@ def process_new_comment_evaluation(request, comment):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
-    else:
+
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "comment": comment,
+            "data": data,
+        }
+        return render(request, "practice/new_comment_evaluation.html", context)
+
+    elif request.method == 'POST':
+        comment = Comment.objects.filter(id=comment_id, state='Normal')
+        if not comment:
+            return redirect(to=f"{reverse('practice:process_new_comment_evaluation')}?http_code=404")
+        comment = comment[0]
+
+        data = {
+            'evaluation_content': {'errors': [], 'value': ''},
+            'errors': [],
+        }
+
         params = request.POST
         is_valid = True
+
         data['evaluation_content']['value'] = params.get('evaluation_content', '')
         evaluation_content = data['evaluation_content']['value'].strip()
         if not evaluation_content:
@@ -959,46 +996,12 @@ def process_new_comment_evaluation(request, comment):
             )
             ce.save()
 
-            request.session[notification_to_view_detail_question_key_name] = 'Tạo đánh giá bình luận thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo đánh giá bình luận thành công")
             return redirect(to="practice:view_detail_question", question_id=comment.question.id)
 
-        data['evaluation_content'].pop('label')
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_new_evaluation')}?cid={comment.id}&data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_new_comment_evaluation', args=[comment_id])}?data={data_in_params}")
 
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "comment": comment,
-        "data": data,
-    }
-    return render(request, "practice/new_comment_evaluation.html", context)
-
-
-@ensure_is_not_anonymous_user
-def process_new_evaluation(request):
-    if request.method == 'GET':
-        params = request.GET
-    elif request.method == 'POST':
-        params = request.POST
-    else:
-        return OriginalHttpResponseBadRequest()
-
-    if 'qid' in params:
-        qid = convert_to_non_negative_int(string=params.get('qid', ''))
-        question = Question.objects.filter(id=qid, state='Approved')
-        if not question:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        question = question[0]
-
-        return process_new_question_evaluation(request, question)
-    elif 'cid' in params:
-        cid = convert_to_non_negative_int(string=params.get('cid', ''))
-        comment = Comment.objects.filter(id=cid, state='Normal')
-        if not comment:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        comment = comment[0]
-
-        return process_new_comment_evaluation(request, comment)
     else:
         return OriginalHttpResponseBadRequest()
 
@@ -1595,7 +1598,7 @@ def process_question_tags_by_admin(request):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-            except:
+            except (UnicodeDecodeError, ValueError):
                 pass
 
     elif request.method == 'POST':
@@ -1614,11 +1617,11 @@ def process_question_tags_by_admin(request):
         if is_valid:
             qt = QuestionTag(name=data['name']['value'].strip())
             qt.save()
-            return redirect(to=f"{reverse('practice:process_new_evaluation')}?limit={params.get('limit', '')}&offset=1")
+            return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
         else:
             data['name'].pop('label')
             data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-            return redirect(to=f"{reverse('practice:process_new_evaluation')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+            return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()

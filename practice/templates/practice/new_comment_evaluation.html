@@ -179,7 +179,7 @@
             <div>
                 <h2 class="native">Thông báo</h2>
                 <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{% url 'practice:process_new_evaluation' %}?cid={{comment.id}}">OK</a>
+                <a autofocus class="button" href="{% url 'practice:process_new_comment_evaluation' comment.id %}">OK</a>
             </div>
         </dialog>
     {% endif %}
