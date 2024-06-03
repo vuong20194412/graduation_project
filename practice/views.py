@@ -1086,6 +1086,7 @@ def process_question_by_admin(request, question_id):
             )
             lg.save()
             request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
+            return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 2:
@@ -1101,6 +1102,7 @@ def process_question_by_admin(request, question_id):
             )
             lg.save()
             request.session[notification_to_view_detail_question_key_name] = _("Thực hiện không duyệt câu hỏi thành công")
+            return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 3:
@@ -1116,6 +1118,7 @@ def process_question_by_admin(request, question_id):
             )
             lg.save()
             request.session[notification_to_view_detail_question_key_name] = _("Thực hiện khóa câu hỏi thành công")
+            return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 4:
@@ -1131,6 +1134,7 @@ def process_question_by_admin(request, question_id):
             )
             lg.save()
             request.session[notification_to_view_detail_question_key_name] = _("Thực hiện mở khóa câu hỏi thành công")
+            return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 5:
@@ -1146,6 +1150,7 @@ def process_question_by_admin(request, question_id):
             )
             lg.save()
             request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
+            return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     else:
