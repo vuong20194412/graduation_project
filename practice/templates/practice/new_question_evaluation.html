@@ -171,25 +171,15 @@
             font-family: none;
         }
     </style>
-    <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
 </head>
 <body>
-    {% if notification %}
-        <dialog id="show_notification_dialog">
-            <div>
-                <h2 class="native">Thông báo</h2>
-                <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{% url 'practice:process_new_question_evaluation' question.id %}">OK</a>
-            </div>
-        </dialog>
+    {% if suffix_utc %}
+        <input type="hidden" id="timezone" name="timezone" value="+00:00" />
     {% endif %}
 
     {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role %}
 
     <div id="id_content" style="justify-content:center;">
-        {% if suffix_utc %}
-            <input type="hidden" id="timezone" name="timezone" value="+00:00" />
-        {% endif %}
         <main style="height:fit-content;">
             <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
                 {% csrf_token %}

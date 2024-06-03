@@ -1,22 +1,22 @@
 import datetime
 import json
-from math import ceil as math_ceil
 import re
+from math import ceil as math_ceil
 
+from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.db.models import Count, Q
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth import get_user_model
+from django.http import HttpResponseBadRequest as OriginalHttpResponseBadRequest, HttpResponseNotFound, Http404
 from django.shortcuts import redirect
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
-from django.urls import reverse
-from django.http import HttpResponseBadRequest as OriginalHttpResponseBadRequest, HttpResponseNotFound, Http404
-from django.utils import timezone
+from users.models import Log
+from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 
 from .models import QuestionTag, Question, Answer, Comment, Evaluation
-from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
-from users.models import Log
 
 
 class HttpResponseBadRequest(OriginalHttpResponseBadRequest):
@@ -53,13 +53,12 @@ def get_limit_for_list(session, limit_in_params: str, limit_key_name: str):
 
 
 # Create your views here.
-notification_to_view_created_questions_key_name = 'practice.views.view_created_questions__notification'
-notification_to_process_new_question_key_name = 'practice.views.process_new_question__notification'
-notification_to_view_detail_question_key_name = 'practice.views.view_detail_question__notification'
 notification_to_process_profile_key_name = 'practice.views.process_profile___notification'
+notification_to_view_detail_question_key_name = 'practice.views.view_detail_question__notification'
+notification_to_process_evaluation_by_admin_key_name = 'practice.views.profile_key_name__notification'
 
 
-def view_questions(request, path_name=None, filters=None, notification=None):
+def view_questions(request, path_name=None, filters=None):
     params = request.GET
     filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
 
@@ -165,7 +164,6 @@ def view_questions(request, path_name=None, filters=None, notification=None):
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "notification": notification or '',
         "tags": tags,
         "questions": questions,
         "path_name": path_name,
@@ -196,14 +194,10 @@ def view_created_questions(request):
     if request.method != 'GET':
         return OriginalHttpResponseBadRequest()
 
-    notification = request.session.get(notification_to_view_created_questions_key_name, '')
-    request.session[notification_to_view_created_questions_key_name] = ''
-
     return view_questions(
         request=request,
         path_name='practice:view_created_questions',
         filters=[Q(user_id=request.user.id)],
-        notification=notification
     )
 
 
@@ -541,7 +535,7 @@ def process_new_question(request):
                          created_at=datetime.datetime.now(datetime.timezone.utc))
             q.save()
 
-            request.session[notification_to_view_detail_question_key_name] = 'Tạo câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo câu hỏi thành công")
             return redirect(to='practice:view_detail_question', question_id=q.id)
 
         elif image and not data['image']['errors']:
@@ -664,7 +658,7 @@ def process_new_answer(request, question_id):
             )
             a.save()
 
-            request.session[notification_to_view_detail_question_key_name] = 'Tạo câu trả lời thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo câu trả lời thành công")
             return redirect(to="practice:view_detail_question", question_id=question_id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -690,6 +684,13 @@ def view_detail_question(request, question_id):
     if not question:
         return HttpResponseNotFound(_('<h1>Not Found</h1>'))
     question = question[0]
+
+    http_code = request.GET.get('http_code')
+    if http_code:
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
 
     past_answers = Answer.objects.filter(user_id=request.user.id, question_id=question_id)
 
@@ -1062,7 +1063,7 @@ def process_question_by_admin(request, question_id):
 
     question = Question.objects.filter(id=question_id)
     if not question:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=404")
     question = question[0]
 
     params = request.POST
@@ -1084,9 +1085,9 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 2:
         if question.state == 'Pending':
             question.state = 'Unapproved'
@@ -1099,9 +1100,9 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện không duyệt câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện không duyệt câu hỏi thành công")
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 3:
         if question.state == 'Approved':
             question.state = 'Locked'
@@ -1114,9 +1115,9 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện khóa câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện khóa câu hỏi thành công")
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 4:
         if question.state == 'Locked':
             question.state = 'Approved'
@@ -1129,9 +1130,9 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện mở khóa câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện mở khóa câu hỏi thành công")
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     elif action == 5:
         if question.state == 'Unapproved':
             question.state = 'Approved'
@@ -1144,9 +1145,9 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = 'Thực hiện duyệt câu hỏi thành công'
+            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     else:
         return OriginalHttpResponseBadRequest()
 
@@ -1238,18 +1239,14 @@ def view_locked_evaluations_by_admin(request):
 
 @ensure_is_admin
 def process_evaluation_by_admin(request, evaluation_id):
-    data = {
-        'previous_adjacent_url': '',
-    }
-    notification = ''
-
     if request.method == 'GET':
+        notification = request.session.get(notification_to_process_evaluation_by_admin_key_name, '')
+        request.session[notification_to_process_evaluation_by_admin_key_name] = ''
+
         evaluation = Evaluation.objects.filter(id=evaluation_id)
         if not evaluation:
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
         evaluation = evaluation[0]
-
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
 
         params = request.GET
         http_code = params.get('http_code')
@@ -1257,6 +1254,20 @@ def process_evaluation_by_admin(request, evaluation_id):
             return HttpResponseBadRequest()
         elif http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
+
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "notification": notification,
+            "evaluation": evaluation,
+            "question": evaluation.question,
+            "comment": evaluation.comment,
+            "data": data,
+        }
+        return render(request, "practice/detail_evaluation.html", context)
 
     elif request.method == 'POST':
         evaluation = Evaluation.objects.filter(id=evaluation_id)
@@ -1269,46 +1280,62 @@ def process_evaluation_by_admin(request, evaluation_id):
         # action: 1 : Pending -> Locked
         # action: 2 : Comment: !Locked -> Locked
         # action: 3 : Question: !Locked -> Locked
-        if evaluation.state == 'Pending':
-            if params.get('action', '') == '1':
+        if params.get('action', '') == '1':
+            if evaluation.state == 'Pending':
                 evaluation.state = 'Locked'
                 evaluation.updated_at = datetime.datetime.now(datetime.timezone.utc)
                 evaluation.save()
-                return redirect(to=f"{reverse('practice:view_locked_evaluations_by_admin')}{'?type=comment' if evaluation.comment else ''}")
-            elif params.get('action', '') == '2':
-                if evaluation.comment and evaluation.comment.state != 'Locked':
-                    c = evaluation.comment
-                    c.state = 'Locked'
-                    c.updated_at = datetime.datetime.now(datetime.timezone.utc)
-                    c.save()
-                    notification = 'Thực hiện khóa bình luận thành công'
-                else:
-                    return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
-            elif params.get('action', '') == '3':
-                if not evaluation.comment and evaluation.question.state != 'Locked':
-                    q = evaluation.question
-                    q.state = 'Locked'
-                    q.save()
-                    notification = 'Thực hiện khóa câu hỏi thành công'
-                else:
-                    return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                lg = Log(
+                    model_name='Evaluation',
+                    object_id=evaluation_id,
+                    user_id=request.user.id,
+                    content="Pending -> Locked",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                lg.save()
+                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
-                return OriginalHttpResponseBadRequest()
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+        elif params.get('action', '') == '2':
+            if evaluation.state == 'Pending' and evaluation.comment and evaluation.comment.state != 'Locked':
+                c = evaluation.comment
+                c.state = 'Locked'
+                c.updated_at = datetime.datetime.now(datetime.timezone.utc)
+                c.save()
+                lg = Log(
+                    model_name='Comment',
+                    object_id=c.id,
+                    user_id=request.user.id,
+                    content="Not Locked -> Locked",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                lg.save()
+                request.session[notification_to_process_evaluation_by_admin_key_name] = _("Thực hiện khóa bình luận thành công")
+                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
+            else:
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+        elif params.get('action', '') == '3':
+            if evaluation.state == 'Pending' and not evaluation.comment and evaluation.question.state != 'Locked':
+                q = evaluation.question
+                q.state = 'Locked'
+                q.save()
+                lg = Log(
+                    model_name='Question',
+                    object_id=q.id,
+                    user_id=request.user.id,
+                    content="Not Locked -> Locked",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                lg.save()
+                request.session[notification_to_process_evaluation_by_admin_key_name] = _("Thực hiện khóa câu hỏi thành công")
+                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
+            else:
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
         else:
-            return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+            return OriginalHttpResponseBadRequest()
 
     else:
         return OriginalHttpResponseBadRequest()
-
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "notification": notification,
-        "evaluation": evaluation,
-        "question": evaluation.question,
-        "comment": evaluation.comment,
-        "data": data,
-    }
-    return render(request, "practice/detail_evaluation.html", context)
 
 
 def view_comments_by_admin(request, path_name=None, filters=None):
@@ -1386,19 +1413,36 @@ def view_locked_comments_by_admin(request):
 
 @ensure_is_admin
 def process_comment_by_admin(request, comment_id):
-    data = {
-        'previous_adjacent_url': '',
-    }
-
-    comment = Comment.objects.filter(id=comment_id)
-    if not comment:
-        return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-    comment = comment[0]
-
     if request.method == 'GET':
-        data['previous_adjacent_url'] = set_prev_adj_url(request)
+        comment = Comment.objects.filter(id=comment_id)
+        if not comment:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        comment = comment[0]
+
+        params = request.GET
+        http_code = params.get('http_code')
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        data = {
+            'previous_adjacent_url': set_prev_adj_url(request),
+        }
+
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "comment": comment,
+            "data": data,
+        }
+        return render(request, "practice/detail_comment.html", context)
 
     elif request.method == 'POST':
+        comment = Comment.objects.filter(id=comment_id)
+        if not comment:
+            return redirect(to=f"{reverse('practice:process_comment_by_admin', args=[comment_id])}?http_code=404")
+        comment = comment[0]
+
         params = request.POST
 
         # action: 1 : Normal -> Locked
@@ -1408,29 +1452,38 @@ def process_comment_by_admin(request, comment_id):
                 comment.state = 'Locked'
                 comment.updated_at = datetime.datetime.now(datetime.timezone.utc)
                 comment.save()
-                return redirect(to="practice:view_locked_comments_by_admin")
+                lg = Log(
+                    model_name='Comment',
+                    object_id=comment.id,
+                    user_id=request.user.id,
+                    content="Normal -> Locked",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                lg.save()
+                return redirect(to='practice:process_comment_by_admin', comment_id=comment_id)
             else:
-                return HttpResponseBadRequest()
+                return redirect(to=f"{reverse('practice:process_comment_by_admin', args=[comment_id])}?http_code=400")
         elif params.get('action', '') == '2':
             if comment.state == 'Locked':
                 comment.state = 'Normal'
                 comment.updated_at = datetime.datetime.now(datetime.timezone.utc)
                 comment.save()
-                return redirect(to="practice:view_unlocked_comments_by_admin")
+                lg = Log(
+                    model_name='Comment',
+                    object_id=comment.id,
+                    user_id=request.user.id,
+                    content="Locked -> Normal",
+                    created_at=datetime.datetime.now(datetime.timezone.utc)
+                )
+                lg.save()
+                return redirect(to='practice:process_comment_by_admin', comment_id=comment_id)
             else:
-                return HttpResponseBadRequest()
+                return redirect(to=f"{reverse('practice:process_comment_by_admin', args=[comment_id])}?http_code=400")
         else:
             return OriginalHttpResponseBadRequest()
 
     else:
         return OriginalHttpResponseBadRequest()
-
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "comment": comment,
-        "data": data,
-    }
-    return render(request, "practice/detail_comment.html", context)
 
 
 def view_users_by_admin(request, path_name=None, filters=None):
@@ -1510,12 +1563,16 @@ def view_locked_users_by_admin(request):
 @ensure_is_admin
 def process_user_by_admin(request, user_id):
     if request.method != 'POST':
-        return HttpResponseBadRequest()
+        return OriginalHttpResponseBadRequest()
 
-    user = get_object_or_404(get_user_model(), pk=user_id)
+    user = get_user_model().objects.filter(id=user_id)
+    if not user:
+        return redirect(to=f"{reverse('practice:process_profile', args=[user_id])}?http_code=404")
+    user = user[0]
+
     # admin can not lock admin
     if user.role == 'Admin':
-        return HttpResponseBadRequest()
+        return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
 
     params = request.POST
 
@@ -1523,38 +1580,54 @@ def process_user_by_admin(request, user_id):
         if user.state == 'Locked':
             user.state = 'Normal'
             user.save()
-            request.session[notification_to_process_profile_key_name] = 'Mở khoá người dùng thành công'
+            lg = Log(
+                model_name='User',
+                object_id=user.id,
+                user_id=request.user.id,
+                content="Locked -> Normal",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
+            request.session[notification_to_process_profile_key_name] = _("Thực hiện mở khoá tài khoản người dùng thành công")
+            return redirect(to="practice:process_profile", profile_id=user_id)
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
     elif params.get('lock', '') == 'on':
         if user.state == 'Normal':
             user.state = 'Locked'
             user.save()
+            lg = Log(
+                model_name='User',
+                object_id=user.id,
+                user_id=request.user.id,
+                content="Normal -> Locked",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
             # logout all session of this user
             for s in Session.objects.all():
                 raw_session = s.get_decoded()
                 if raw_session.get('_auth_user_id', 0) == user_id:
                     s.delete()
                     print(raw_session)
-            request.session[notification_to_process_profile_key_name] = 'Khoá người dùng thành công'
+            request.session[notification_to_process_profile_key_name] = _("Thực hiện khoá tài khoản người dùng thành công")
+            return redirect(to="practice:process_profile", profile_id=user_id)
         else:
-            return HttpResponseBadRequest()
+            return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
     else:
         return OriginalHttpResponseBadRequest()
-
-    return redirect(to="practice:process_profile", profile_id=user_id)
 
 
 @ensure_is_admin
 def process_question_tags_by_admin(request):
-    path_name = "practice:process_question_tags_by_admin"
-    filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
-    data = {
-        'name': {'errors': [], 'value': '', 'label': _('Nhãn câu hỏi mới')},
-        'errors': [],
-    }
-
     if request.method == 'GET':
+        path_name = "practice:process_question_tags_by_admin"
+        filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
+        data = {
+            'name': {'errors': [], 'value': '', 'label': _('Nhãn câu hỏi mới')},
+            'errors': [],
+        }
+
         params = request.GET
 
         if params.get('filter', '') == 'input':
@@ -1579,7 +1652,6 @@ def process_question_tags_by_admin(request):
                 kfilter['name__iregex'] = r"^.*" + ('|'.join(names)) + r".*$"
 
         page_count = math_ceil(QuestionTag.objects.filter(**kfilter).count() / limit) or 1
-
         page_offset = get_page_offset(offset_in_params=offset_in_params, page_count=page_count)
         offset = (page_offset - 1) * limit
 
@@ -1601,7 +1673,30 @@ def process_question_tags_by_admin(request):
             except (UnicodeDecodeError, ValueError):
                 pass
 
+        question_tags = QuestionTag.objects.filter(**kfilter).order_by('-id')[offset:(offset + limit)]
+
+        context = {
+            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
+            "question_tags": question_tags,
+            "question_tag_conditions": {
+                "page_range": range(1, page_count + 1),
+                "limits": [4, 8, 16],
+                "path_name": path_name,
+                "limit": limit,
+                "include_limit_exclude_offset_url": f"{reverse(path_name)}?limit={limit}",
+                "page_offset": page_offset,
+                'filter_by_name': filter_by_name,
+            },
+            "data": data,
+        }
+        return render(request, "practice/question_tags.html", context)
+
     elif request.method == 'POST':
+        data = {
+            'name': {'errors': [], 'value': ''},
+            'errors': [],
+        }
+
         params = request.POST
         is_valid = True
 
@@ -1617,29 +1712,18 @@ def process_question_tags_by_admin(request):
         if is_valid:
             qt = QuestionTag(name=data['name']['value'].strip())
             qt.save()
+            lg = Log(
+                model_name='QuestionTag',
+                object_id=qt.id,
+                user_id=request.user.id,
+                content="Create",
+                created_at=datetime.datetime.now(datetime.timezone.utc)
+            )
+            lg.save()
             return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
-        else:
-            data['name'].pop('label')
-            data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-            return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+
+        data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+        return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
-
-    question_tags = QuestionTag.objects.filter(**kfilter).order_by('-id')[offset:(offset + limit)]
-
-    context = {
-        "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-        "question_tags": question_tags,
-        "data": data,
-        "question_tag_conditions": {
-            "page_range": range(1, page_count + 1),
-            "limits": [4, 8, 16],
-            "path_name": path_name,
-            "limit": limit,
-            "include_limit_exclude_offset_url": f"{reverse(path_name)}?limit={limit}",
-            "page_offset": page_offset,
-            'filter_by_name': filter_by_name,
-        },
-    }
-    return render(request, "practice/question_tags.html", context)

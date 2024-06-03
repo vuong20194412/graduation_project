@@ -21,6 +21,10 @@
         </dialog>
     {% endif %}
 
+    {% if suffix_utc %}
+        <input type="hidden" id="timezone" name="timezone" value="+00:00" />
+    {% endif %}
+
     <main>
         {% if data.readonly %}
             {% if user.role == 'Admin' and profile_role != 'Admin' %}

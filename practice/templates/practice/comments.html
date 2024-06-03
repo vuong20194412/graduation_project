@@ -10,7 +10,6 @@
 
     <link rel="stylesheet" href="{% static 'practice/css/generic_setting.css' %}">
     <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
-    <link rel="stylesheet" href="{% static 'users/css/show_notification_dialog.css' %}">
 
     <style>
         #content_tag {
@@ -300,15 +299,6 @@
     </style>
 </head>
 <body>
-    {% if notification %}
-        <dialog id="show_notification_dialog">
-            <div>
-                <h2 class="native">Thông báo</h2>
-                <p class="native">{{notification}}</p>
-                <a autofocus class="button" href="{{comment_conditions.include_limit_exclude_offset_url}}&offset={{comment_conditions.page_offset}}">OK</a>
-            </div>
-        </dialog>
-    {% endif %}
     {% if suffix_utc %}
         <input type="hidden" id="timezone" name="timezone" value="+00:00" />
     {% endif %}
