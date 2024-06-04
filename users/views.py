@@ -32,7 +32,7 @@ def ensure_is_not_anonymous_user(function=None):
 
 def set_prev_adj_url(request):
     request_url = request.build_absolute_uri()
-    referer_url = request.META['HTTP_REFERER']
+    referer_url = request.META.get('HTTP_REFERER')
     if referer_url and request_url != referer_url:
         request.session[f'{request_url}.encoded_prev_adj_url'] = urlsafe_base64_encode(referer_url.encode('utf-8'))
     encoded_prev_adj_url = request.session.get(f'{request_url}.encoded_prev_adj_url')
@@ -155,7 +155,7 @@ def process_sign_up(request):
 
         if is_valid:
             User.objects.create_user(email=email, name=name, password=password)
-            request.session[notification_to_sign_in_key_name] = _("Thực hiện đăng ký thành công")
+            request.session[notification_to_sign_in_key_name] = "Thực hiện đăng ký thành công"
             return redirect(to="users:sign_in")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -168,7 +168,9 @@ def process_sign_up(request):
 def process_sign_in(request):
     if request.method == 'GET':
         notification = request.session.get(notification_to_sign_in_key_name, '')
-        request.session[notification_to_sign_in_key_name] = ''
+        if notification:
+            notification = _(notification)
+            request.session[notification_to_sign_in_key_name] = ''
 
         data = {
             'email': {'errors': [], 'value': '', 'label': _('Email')},
@@ -247,7 +249,7 @@ def process_logout(request):
         return HttpResponseBadRequest()
 
     logout(request)
-    request.session[notification_to_sign_in_key_name] = _("Thực hiện đăng xuất thành công")
+    request.session[notification_to_sign_in_key_name] = "Thực hiện đăng xuất thành công"
     return redirect(to="users:sign_in")
 
 
@@ -328,7 +330,7 @@ def process_change_password(request):
             request.user.set_password(new_password)
             request.user.save()
             logout(request)
-            request.session[notification_to_sign_in_key_name] = _("Đổi mật khẩu thành công")
+            request.session[notification_to_sign_in_key_name] = "Thực hiện đổi mật khẩu thành công"
             return redirect(to="users:sign_in")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))

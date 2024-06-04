@@ -28,7 +28,7 @@ class Question(models.Model):
         ('Pending', _('Chờ duyệt')),
         ('Unapproved', _('Không được duyệt')),
         ('Approved', _('Đã duyệt')),
-        ('Locked', _('Đã khóa'))
+        ('Locked', _('Đã ẩn'))
     )
     content = models.TextField(_('nội dung câu hỏi'), default='')
     state = models.CharField(verbose_name=_('trạng thái câu hỏi'), max_length=255, choices=STATE_CHOICES, default='Pending', )

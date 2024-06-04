@@ -222,7 +222,7 @@
         <aside class="left_aside">
             <div class="in_left_aside">
                 {% if data.previous_adjacent_url %}
-                    <div style="padding:8px;">
+                    <div id="id_previous_adjacent_link" style="padding:8px;">
                         <a class="button" href="{{data.previous_adjacent_url}}">Trở lại trang trước</a>
                     </div>
                 {% endif %}
@@ -259,7 +259,7 @@
                          <form method="POST" action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                             {% csrf_token %}
                              <input type="hidden" name="action" value="2"/>
-                            <button type="submit">Khóa bình luận</button>
+                            <button type="submit">Ẩn bình luận</button>
                         </form>
                     {% endif %}
                     <div id="id_comment">
@@ -271,7 +271,7 @@
                          <form method="POST" action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="3"/>
-                            <button type="submit">Khóa câu hỏi</button>
+                            <button type="submit">Ẩn câu hỏi</button>
                         </form>
                     {% endif %}
                 {% endif %}

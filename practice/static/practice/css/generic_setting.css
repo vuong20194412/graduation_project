@@ -35,3 +35,9 @@ label {
 span {
     font-size: 11px;
 }
+@media only screen and (max-width:800px) {
+  /* For tablets and mobile phones: */
+  #id_previous_adjacent_link, #id__previous_adjacent_link {
+    display: none;
+  }
+}

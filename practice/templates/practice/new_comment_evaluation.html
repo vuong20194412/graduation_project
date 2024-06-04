@@ -3,6 +3,7 @@
 <html lang="vi-vn">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đánh giá bình luận</title>
     <link rel="stylesheet" href="{% static 'users/css/button.css' %}">
     <link rel="stylesheet" href="{% static 'users/css/input.css' %}">
@@ -184,7 +185,7 @@
             <form method="POST" style="display:flex;flex-direction:column;gap:4px;">
                 {% csrf_token %}
                 <input type="hidden" name="cid" value="{{comment.id}}">
-                <div style="display:flex;justify-content: space-between;padding:4px 0;">
+                <div id="id_previous_adjacent_link" style="display:flex;justify-content: space-between;padding:4px 0;">
                     <a class="button" href="{% url 'practice:view_detail_question' comment.question.id %}">Tới trang chi tiết câu hỏi</a>
                 </div>
                 <div>

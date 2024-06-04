@@ -1,115 +1,117 @@
-<nav>
-    <a href="{{current_include_limit_exclude_offset_url}}&offset=1">&lt;&lt;</a>
-    <a href="{{current_include_limit_exclude_offset_url}}&offset={% if current_page_offset > 1 %}{{current_page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
+<div class="nav_container">
+    <nav>
+        <a href="{{current_include_limit_exclude_offset_url}}&offset=1">&lt;&lt;</a>
+        <a href="{{current_include_limit_exclude_offset_url}}&offset={% if current_page_offset > 1 %}{{current_page_offset|add:-1}}{% else %}1{% endif %}">&lt;</a>
 
-    {% if current_page_range|length > 4 %}
-        {% if current_page_offset == 1 or current_page_offset == current_page_range|length %}
-            <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            ...
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
-        {% elif current_page_offset == 2 %}
-            <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            <a class="{% if current_page_offset == 3 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=3">3</a>
-            {% if current_page_range|length > 5 %}
-            ...
+        {% if current_page_range|length > 4 %}
+            {% if current_page_offset == 1 or current_page_offset == current_page_range|length %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                ...
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% elif current_page_offset == 2 %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                <a class="{% if current_page_offset == 3 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=3">3</a>
+                {% if current_page_range|length > 5 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% elif current_page_offset == current_page_range|length|add:-1 %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                {% if current_page_range|length > 5 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_range|length|add:-2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-2}}">{{current_page_range|length|add:-2}}</a>
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% elif current_page_offset == 3 %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                <a class="{% if current_page_offset == 3 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=3">3</a>
+                <a class="{% if current_page_offset == 4 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=4">4</a>
+                {% if current_page_range|length > 6 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% elif current_page_offset == current_page_range|length|add:-2 %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                {% if current_page_range|length > 6 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_range|length|add:-3 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-3}}">{{current_page_range|length|add:-3}}</a>
+                <a class="{% if current_page_offset == current_page_range|length|add:-2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-2}}">{{current_page_range|length|add:-2}}</a>
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% else %}
+                <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
+                <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
+                {% if current_page_range|length > 7 and current_page_offset > 4 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_offset|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:-1}}">{{current_page_offset|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_offset %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}">{{current_page_offset}}</a>
+                <a class="{% if current_page_offset == current_page_offset|add:1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:1}}">{{current_page_offset|add:1}}</a>
+                {% if current_page_range|length > 7 and current_page_offset < current_page_range|length|add:-3 %}
+                ...
+                {% endif %}
+                <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
+                <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
+                   href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
             {% endif %}
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
-        {% elif current_page_offset == current_page_range|length|add:-1 %}
-            <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            {% if current_page_range|length > 5 %}
-            ...
-            {% endif %}
-            <a class="{% if current_page_offset == current_page_range|length|add:-2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-2}}">{{current_page_range|length|add:-2}}</a>
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
-        {% elif current_page_offset == 3 %}
-            <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            <a class="{% if current_page_offset == 3 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=3">3</a>
-            <a class="{% if current_page_offset == 4 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=4">4</a>
-            {% if current_page_range|length > 6 %}
-            ...
-            {% endif %}
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
-        {% elif current_page_offset == current_page_range|length|add:-2 %}
-            <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            {% if current_page_range|length > 6 %}
-            ...
-            {% endif %}
-            <a class="{% if current_page_offset == current_page_range|length|add:-3 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-3}}">{{current_page_range|length|add:-3}}</a>
-            <a class="{% if current_page_offset == current_page_range|length|add:-2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-2}}">{{current_page_range|length|add:-2}}</a>
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
         {% else %}
+            {% for page_offset in current_page_range %}
+            <a class="{% if current_page_offset == page_offset %}selected_a{% endif %}"
+               href="{{current_include_limit_exclude_offset_url}}&offset={{page_offset}}">{{page_offset}}</a>
+            {% empty %}
             <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
                href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-            <a class="{% if current_page_offset == 2 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset=2">2</a>
-            {% if current_page_range|length > 7 and current_page_offset > 4 %}
-            ...
-            {% endif %}
-            <a class="{% if current_page_offset == current_page_offset|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:-1}}">{{current_page_offset|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_offset %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}">{{current_page_offset}}</a>
-            <a class="{% if current_page_offset == current_page_offset|add:1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:1}}">{{current_page_offset|add:1}}</a>
-            {% if current_page_range|length > 7 and current_page_offset < current_page_range|length|add:-3 %}
-            ...
-            {% endif %}
-            <a class="{% if current_page_offset == current_page_range|length|add:-1 %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length|add:-1}}">{{current_page_range|length|add:-1}}</a>
-            <a class="{% if current_page_offset == current_page_range|length %}selected_a{% endif %}"
-               href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_range|length}}">{{current_page_range|length}}</a>
+            {% endfor %}
         {% endif %}
-    {% else %}
-        {% for page_offset in current_page_range %}
-        <a class="{% if current_page_offset == page_offset %}selected_a{% endif %}"
-           href="{{current_include_limit_exclude_offset_url}}&offset={{page_offset}}">{{page_offset}}</a>
-        {% empty %}
-        <a class="{% if current_page_offset == 1 %}selected_a{% endif %}"
-           href="{{current_include_limit_exclude_offset_url}}&offset=1">1</a>
-        {% endfor %}
-    {% endif %}
 
-    <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:1}}">&gt;</a>
-    <a href="{{current_include_limit_exclude_offset_url}}&offset=-1">&gt;&gt;</a>
+        <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset|add:1}}">&gt;</a>
+        <a href="{{current_include_limit_exclude_offset_url}}&offset=-1">&gt;&gt;</a>
 
+    </nav>
     <form method="GET" action="{{current_include_limit_exclude_offset_url}}"
-          style="margin-bottom:0;height:100%;display:flex;align-items:center;gap:4px;padding-left:12px;">
+          style="margin-bottom:0;height:48px;display:flex;align-items:center;gap:4px;">
         {% if current_tid %}
             <input type="hidden" name="tid" value="{{current_tid}}"/>
         {% endif %}
@@ -121,4 +123,4 @@
                value="{{current_page_offset}}"/>
         <button type="submit">Chuyển</button>
     </form>
-</nav>
+</div>

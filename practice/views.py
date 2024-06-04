@@ -68,7 +68,6 @@ def view_questions(request, path_name=None, filters=None):
             'filter_by_created_at_to': params.get('filter_by_created_at_to'),
             'filter_by_content': params.get('filter_by_content'),
             'filter_by_hashtag': params.get('filter_by_hashtag'),
-            'filter_by_author_name': params.get('filter_by_author_name'),
             'filter_by_author_code': params.get('filter_by_author_code'),
             'sorter_with_created_at': params.get('sorter_with_created_at'),
             'sorter_with_decreasing_number_of_answers': params.get('sorter_with_decreasing_number_of_answers'),
@@ -80,7 +79,6 @@ def view_questions(request, path_name=None, filters=None):
             'filter_by_created_at_to': '',
             'filter_by_content': '',
             'filter_by_hashtag': '',
-            'filter_by_author_name': '',
             'filter_by_author_code': '',
             'sorter_with_created_at': '',
             'sorter_with_decreasing_number_of_answers': False,
@@ -125,12 +123,6 @@ def view_questions(request, path_name=None, filters=None):
         hashtags = [hashtag.strip() for hashtag in hashtags.split(',') if hashtag.strip()]
         if hashtags:
             filters.append(Q(hashtags__iregex=r"^.*" + ('|'.join(hashtags)) + r".*$"))
-
-    author_names = _filters_and_sorters['filter_by_author_name']
-    if author_names:
-        author_names = [author_name.strip() for author_name in author_names.split(',') if author_name.strip()]
-        if author_names:
-            filters.append(Q(user__name__iregex=r"^.*" + ('|'.join(author_names)) + r".*$"))
 
     author_codes = _filters_and_sorters['filter_by_author_code']
     if author_codes:
@@ -178,7 +170,6 @@ def view_questions(request, path_name=None, filters=None):
             'filter_by_created_at_to': _filters_and_sorters.get('filter_by_created_at_to'),
             'filter_by_content': _filters_and_sorters.get('filter_by_content'),
             'filter_by_hashtag': _filters_and_sorters.get('filter_by_hashtag'),
-            'filter_by_author_name': _filters_and_sorters.get('filter_by_author_name'),
             'filter_by_author_code': _filters_and_sorters.get('filter_by_author_code'),
             'sorter_with_created_at': _filters_and_sorters.get('sorter_with_created_at'),
             'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get('sorter_with_decreasing_number_of_answers'),
@@ -240,7 +231,9 @@ def view_root(request):
 def process_profile(request, profile_id):
     if request.method == 'GET':
         notification = request.session.get(notification_to_process_profile_key_name, '')
-        request.session[notification_to_process_profile_key_name] = ''
+        if notification:
+            notification = _(notification)
+            request.session[notification_to_process_profile_key_name] = ''
 
         profile = get_user_model().objects.filter(id=profile_id)
         if not profile:
@@ -360,7 +353,7 @@ def process_profile(request, profile_id):
             if has_changed:
                 profile.save()
 
-            request.session[notification_to_process_profile_key_name] = _("Thực hiện sửa thông tin thành công")
+            request.session[notification_to_process_profile_key_name] = "Thực hiện sửa thông tin thành công"
             return redirect(to='practice:process_profile', profile_id=profile_id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -535,7 +528,7 @@ def process_new_question(request):
                          created_at=datetime.datetime.now(datetime.timezone.utc))
             q.save()
 
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=q.id)
 
         elif image and not data['image']['errors']:
@@ -658,7 +651,7 @@ def process_new_answer(request, question_id):
             )
             a.save()
 
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo câu trả lời thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu trả lời thành công"
             return redirect(to="practice:view_detail_question", question_id=question_id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -674,7 +667,9 @@ def view_detail_question(request, question_id):
         return OriginalHttpResponseBadRequest()
 
     notification = request.session.get(notification_to_view_detail_question_key_name, '')
-    request.session[notification_to_view_detail_question_key_name] = ''
+    if notification:
+        notification = _(notification)
+        request.session[notification_to_view_detail_question_key_name] = ''
 
     if request.user.role != 'Admin':
         question = Question.objects.filter(Q(id=question_id), (Q(state='Approved') | Q(user_id=request.user.id)))
@@ -911,7 +906,7 @@ def process_new_question_evaluation(request, question_id):
             )
             qe.save()
 
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo đánh giá câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá câu hỏi thành công"
             return redirect(to="practice:view_detail_question", question_id=question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -997,7 +992,7 @@ def process_new_comment_evaluation(request, comment_id):
             )
             ce.save()
 
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện tạo đánh giá bình luận thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá bình luận thành công"
             return redirect(to="practice:view_detail_question", question_id=comment.question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -1085,7 +1080,7 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện duyệt câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
@@ -1101,7 +1096,7 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện không duyệt câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện không duyệt câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
@@ -1117,7 +1112,7 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện khóa câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện ẩn câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
@@ -1133,7 +1128,7 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện mở khóa câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện hiện câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
@@ -1149,14 +1144,12 @@ def process_question_by_admin(request, question_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_view_detail_question_key_name] = _("Thực hiện duyệt câu hỏi thành công")
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện duyệt câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=question_id)
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     else:
         return OriginalHttpResponseBadRequest()
-
-    return redirect(to="practice:view_detail_question", question_id=question_id)
 
 
 def view_evaluations_by_admin(request, path_name=None, filters=None):
@@ -1246,7 +1239,9 @@ def view_locked_evaluations_by_admin(request):
 def process_evaluation_by_admin(request, evaluation_id):
     if request.method == 'GET':
         notification = request.session.get(notification_to_process_evaluation_by_admin_key_name, '')
-        request.session[notification_to_process_evaluation_by_admin_key_name] = ''
+        if notification:
+            notification = _(notification)
+            request.session[notification_to_process_evaluation_by_admin_key_name] = ''
 
         evaluation = Evaluation.objects.filter(id=evaluation_id)
         if not evaluation:
@@ -1315,7 +1310,7 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[notification_to_process_evaluation_by_admin_key_name] = _("Thực hiện khóa bình luận thành công")
+                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn bình luận thành công"
                 return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
                 return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
@@ -1332,7 +1327,7 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[notification_to_process_evaluation_by_admin_key_name] = _("Thực hiện khóa câu hỏi thành công")
+                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn câu hỏi thành công"
                 return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
                 return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
@@ -1593,7 +1588,7 @@ def process_user_by_admin(request, user_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_process_profile_key_name] = _("Thực hiện mở khoá tài khoản người dùng thành công")
+            request.session[notification_to_process_profile_key_name] = "Thực hiện mở khoá tài khoản người dùng thành công"
             return redirect(to="practice:process_profile", profile_id=user_id)
         else:
             return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
@@ -1615,7 +1610,7 @@ def process_user_by_admin(request, user_id):
                 if raw_session.get('_auth_user_id', 0) == user_id:
                     s.delete()
                     print(raw_session)
-            request.session[notification_to_process_profile_key_name] = _("Thực hiện khoá tài khoản người dùng thành công")
+            request.session[notification_to_process_profile_key_name] = "Thực hiện khoá tài khoản người dùng thành công"
             return redirect(to="practice:process_profile", profile_id=user_id)
         else:
             return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")

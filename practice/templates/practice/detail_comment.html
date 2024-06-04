@@ -205,14 +205,14 @@
     {% if suffix_utc %}
         <input type="hidden" id="timezone" name="timezone" value="+00:00"/>
     {% endif %}
-    {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role  type='evaluation' %}
+    {% include 'practice/header.html' with current_path_name='' current_include_limit_exclude_offset_url='' current_page_offset='' role=user.role  type='comment' %}
 
     <!-- content -->
     <div id="content_tag">
         <aside class="left_aside">
             <div class="in_left_aside">
                 {% if data.previous_adjacent_url %}
-                    <div style="padding:8px;">
+                    <div id="id_previous_adjacent_link" style="padding:8px;">
                         <a class="button" href="{{data.previous_adjacent_url}}">Trở lại trang trước</a>
                     </div>
                 {% endif %}
