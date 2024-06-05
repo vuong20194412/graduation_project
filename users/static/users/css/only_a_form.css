@@ -8,10 +8,12 @@ body {
     box-sizing: border-box;
     margin: 0;
     height: 100vh;
+    width: 100%;
 }
 main {
     box-sizing: border-box;
     height: 100%;
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -19,7 +21,9 @@ main {
 }
 form {
     box-sizing: border-box;
-    width: 396px;
+    /*width: 396px;*/
+    width: fit-content;
+    max-width: calc(100% - 16px);
     height: fit-content;
     border-radius: 8px;
     display: flex;
@@ -61,11 +65,16 @@ p[data-ref]{
   #id_previous_adjacent_link, #id__previous_adjacent_link {
     display: none;
   }
+}
+@media only screen and (max-width:500px) {
+  /* For mobile phones: */
   form {
-    max-width: 396px;
-    width: fit-content;
-    align-items: flex-start;
-    padding-left: 49px;
-    padding-right: 49px;
+    margin-left: 8px;
+    margin-right: 8px;
+    max-width: calc(100% - 16px);
+    width: calc(100% - 16px);
+    align-items: center;
+    padding-left: 8px;
+    padding-right: 8px;
   }
 }

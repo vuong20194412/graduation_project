@@ -328,7 +328,7 @@
                             </div>
                             <div style="display:flex;gap:8px;flex-direction:row-reverse;">
                                 <div style="display:flex;flex-direction:column;">
-                                    <span>Tác giả: {{evaluation.user.name|truncatechars:60}} <em title="Mã tác giả">{{evaluation.user.code}}</em></span>
+                                    <span>Mã tác giả: {{evaluation.user.code}}</span>
                                     <span>Thời điểm tạo: {{evaluation.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                 </div>
                             </div>
@@ -349,7 +349,7 @@
                     <input type="hidden" name="offset" value="{{evaluation_conditions.page_offset}}"/>
                     <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
-                        <p style="font-weight:bold;">Lọc:</p>
+                        <p><strong>Lọc:</strong>&nbsp;<span><em>Dùng dấu phẩy để tách biệt các từ khóa.</em></span></p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
                             <label for="id_filter_by_content">Nội dung đánh giá:</label>
                             <input type="text"
@@ -358,9 +358,15 @@
                                    placeholder="Nội dung đánh giá"
                                    value="{{evaluation_conditions.filter_by_content}}"
                                    title="Ngăn cách các từ khóa bởi dấu phẩy"/>
-                            <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa
-                            </span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:1px;">
+                            <label for="id_filter_by_author_code">Nội dung đánh giá:</label>
+                            <input type="text"
+                                   id="id_filter_by_author_code"
+                                   name="filter_by_author_code"
+                                   placeholder="Mã tác giả"
+                                   value="{{evaluation_conditions.filter_by_author_code}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy"/>
                         </div>
                         <div>
                             <button type="submit">Tìm kiếm</button>

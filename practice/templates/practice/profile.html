@@ -32,7 +32,7 @@
             {% else %}
             <form>
             {% endif %}
-                <h2 style="width:100%;">Thông tin hồ sơ</h2>
+                <h2>Thông tin hồ sơ</h2>
                 <div style="width:100%;">
                     <p><strong>{{data.code.label}}: </strong>{{data.code.value}}</p>
                 </div >
@@ -55,7 +55,7 @@
                     </div>
                 {% endif %}
                 <div>
-                    <p id="id__previous_adjacent_link">
+                    <p id="id__previous_adjacent_link" style="position:absolute;top:0;right:-124px;width:75px;">
                         {% if data.previous_adjacent_url %}
                             <a href="{{data.previous_adjacent_url}}">Tới trang trước</a>
                         {% endif %}
@@ -70,10 +70,13 @@
         <form method="POST">
             <h2>Quản lý tài khoản</h2>
             {% csrf_token %}
-            <p style="width:100%;"><strong>{{data.code.label}}: </strong>{{data.code.value}}</p>
+            <div>
+                <p style="width:100%;"><strong>{{data.code.label}}: </strong>{{data.code.value}}</p>
+            </div>
             <div>
                 <label for="id_name"><strong>{{data.name.label}}:</strong></label>
-                <input required
+                <div>
+                    <input required
                        type="text" spellcheck="false"
                        id="id_name"
                        name="name"
@@ -81,13 +84,15 @@
                        title="{{data.name.label}}"
                        value="{{data.name.value}}"
                        class="{%if data.name.errors %} error {% endif %}"/>
+                </div>
                 {% for error in data.name.errors %}
                     <p class="error" data-ref="id_name">{{error}}</p>
                 {% endfor %}
             </div>
             <div>
                 <label for="id_email"><strong>{{data.email.label}}:</strong></label>
-                <input required
+                <div>
+                    <input required
                        type="text" spellcheck="false"
                        id="id_email"
                        name="email"
@@ -95,6 +100,7 @@
                        title="{{data.email.label}}"
                        value="{{data.email.value}}"
                        class="{% if data.email.errors %}error{% endif %}"/>
+                </div>
                 {% for error in data.email.errors %}
                     <p class="error" data-ref="id_email">{{error}}</p>
                 {% endfor %}
@@ -104,7 +110,7 @@
             {% endfor %}
             <div style="position:relative;">
                 <button type="submit">Lưu sửa đổi</button>
-                <p id="id_previous_adjacent_link">
+                <p id="id_previous_adjacent_link" style="position:absolute;top:0;right:-124px;width:75px;">
                     {% if data.previous_adjacent_url %}
                         <a href="{{data.previous_adjacent_url}}">Tới trang trước</a>
                     {% endif %}

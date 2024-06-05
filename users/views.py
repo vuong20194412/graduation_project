@@ -334,7 +334,7 @@ def process_change_password(request):
             return redirect(to="users:sign_in")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('users:sign_in')}?data={data_in_params}")
+        return redirect(to=f"{reverse('users:change_password')}?data={data_in_params}")
 
     else:
         return HttpResponseBadRequest()

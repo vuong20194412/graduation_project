@@ -64,14 +64,14 @@ def view_questions(request, path_name=None, filters=None):
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
-            'filter_by_created_at_from': params.get('filter_by_created_at_from'),
-            'filter_by_created_at_to': params.get('filter_by_created_at_to'),
-            'filter_by_content': params.get('filter_by_content'),
-            'filter_by_hashtag': params.get('filter_by_hashtag'),
-            'filter_by_author_code': params.get('filter_by_author_code'),
-            'sorter_with_created_at': params.get('sorter_with_created_at'),
-            'sorter_with_decreasing_number_of_answers': params.get('sorter_with_decreasing_number_of_answers'),
-            'sorter_with_decreasing_number_of_comments': params.get('sorter_with_decreasing_number_of_comments'),
+            'filter_by_created_at_from': params.get('filter_by_created_at_from', ''),
+            'filter_by_created_at_to': params.get('filter_by_created_at_to', ''),
+            'filter_by_content': params.get('filter_by_content', ''),
+            'filter_by_hashtag': params.get('filter_by_hashtag', ''),
+            'filter_by_author_code': params.get('filter_by_author_code', ''),
+            'sorter_with_created_at': params.get('sorter_with_created_at', ''),
+            'sorter_with_decreasing_number_of_answers': params.get('sorter_with_decreasing_number_of_answers', False),
+            'sorter_with_decreasing_number_of_comments': params.get('sorter_with_decreasing_number_of_comments', False),
         }
     elif not request.session.get(filters_and_sorters_key_name):
         request.session[filters_and_sorters_key_name] = {
@@ -702,8 +702,10 @@ def view_question(request, question_id, showing_comments: bool = False):
     }
 
     if showing_comments:
-        data["comment_content"] = {"errors": [], "value": "", "label": _('Bình luận mới')},
-        data["errors"] = []
+        data.update({
+            "comment_content": {"errors": [], "value": "", "label": _('Bình luận mới')},
+            "errors": [],
+        })
 
         data_in_params = params.get('data')
         if data_in_params:
@@ -788,7 +790,7 @@ def view_detail_answer(request, answer_id):
 @ensure_is_not_anonymous_user
 def process_comments_in_question(request, question_id):
     if request.method == 'GET':
-        return view_question(request, question_id)
+        return view_question(request, question_id, showing_comments=True)
 
     elif request.method == 'POST':
         question = Question.objects.filter(id=question_id, state='Approved')
@@ -1167,10 +1169,12 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
             'filter_by_content': params.get('filter_by_content', ''),
+            'filter_by_author_code': params.get('filter_by_author_code', ''),
         }
     elif not request.session.get(filters_and_sorters_key_name):
         request.session[filters_and_sorters_key_name] = {
             'filter_by_content': '',
+            'filter_by_author_code': '',
         }
 
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
@@ -1180,6 +1184,12 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
         contents = [content.strip() for content in filter_by_content.split(',') if content.strip()]
         if contents:
             filters.append(Q(content__iregex=r"^.*" + ('|'.join(contents)) + r".*$"))
+
+    author_codes = _filters_and_sorters['filter_by_author_code']
+    if author_codes:
+        author_codes = [author_code.strip() for author_code in author_codes.split(',') if author_code.strip()]
+        if author_codes:
+            filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
     limit = get_limit_for_list(
         session=request.session,
@@ -1343,10 +1353,12 @@ def view_comments_by_admin(request, path_name=None, filters=None):
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
             'filter_by_content': params.get('filter_by_content', ''),
+            'filter_by_author_code': params.get('filter_by_author_code', ''),
         }
     elif not request.session.get(filters_and_sorters_key_name):
         request.session[filters_and_sorters_key_name] = {
             'filter_by_content': '',
+            'filter_by_author_code': '',
         }
 
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
@@ -1357,6 +1369,12 @@ def view_comments_by_admin(request, path_name=None, filters=None):
         contents = [content.strip() for content in filter_by_content.split(',') if content.strip()]
         if contents:
             filters.append(Q(content__iregex=r"^.*" + ('|'.join(contents)) + r".*$"))
+
+    author_codes = _filters_and_sorters['filter_by_author_code']
+    if author_codes:
+        author_codes = [author_code.strip() for author_code in author_codes.split(',') if author_code.strip()]
+        if author_codes:
+            filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
     limit = get_limit_for_list(
         session=request.session,
@@ -1492,10 +1510,12 @@ def view_users_by_admin(request, path_name=None, filters=None):
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
             'filter_by_name': params.get('filter_by_name', ''),
+            'filter_by_code': params.get('filter_by_code', ''),
         }
     elif not request.session.get(filters_and_sorters_key_name):
         request.session[filters_and_sorters_key_name] = {
             'filter_by_name': '',
+            'filter_by_code': '',
         }
 
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
@@ -1506,6 +1526,12 @@ def view_users_by_admin(request, path_name=None, filters=None):
         names = [name.strip() for name in filter_by_name.split(',') if name.strip()]
         if names:
             filters.append(Q(name__iregex=r"^.*" + ('|'.join(names)) + r".*$"))
+
+    codes = _filters_and_sorters['filter_by_code']
+    if codes:
+        codes = [code.strip() for code in codes.split(',') if code.strip()]
+        if codes:
+            filters.append(Q(code__iregex=r"^.*" + ('|'.join(codes)) + r".*$"))
 
     limit = get_limit_for_list(
         session=request.session,

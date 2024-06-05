@@ -1,7 +1,7 @@
 function autoFocusInput() {
     const first_error_p_element = document.querySelector("p.error[data-ref]");
     if (first_error_p_element && first_error_p_element.dataset.ref) {
-        autofocus_input_element = document.querySelector(`#${first_error_p_element.dataset.ref}`);
+        const autofocus_input_element = document.querySelector(`#${first_error_p_element.dataset.ref}`);
         if (autofocus_input_element) {
             autofocus_input_element.classList.remove('error');
             autofocus_input_element.focus();

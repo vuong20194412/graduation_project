@@ -107,10 +107,22 @@
             background-color: #FFFFFF;
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
+        main>.in_main>div.buttons {
+            box-sizing: border-box;
+            display: flex;
+            height: fit-content;
+            padding: 8px 0 8px 8px;
+            gap: 8px;
+            background-color: #E4E4E4;
+            flex-wrap: wrap;
+        }
+        main>.in_main>div.buttons>a.button:last_of_type {
+            margin-right: 8px;
+        }
         #id_question_author {
             box-sizing: border-box;
             width: fit-content;
-            max-width: 50%;
+            max-width: 11em;
             display: flex;
             flex-direction: column;
             justify-content: end;
@@ -290,7 +302,7 @@
                 </div>
 
                 {% if question.state == 'Approved' and user.role != 'Admin' %}
-                    <div style="display:flex;gap:8px;padding:8px;background-color:#E4E4E4;">
+                    <div class="buttons">
                         <a class="button" href="{% url 'practice:process_new_answer' question.id %}">Trả lời</a>
                         {% if not showing_comments %}
                             <a class="button" href="{% url 'practice:process_comments_in_question' question.id %}">&#9013 Bình luận</a>
@@ -320,7 +332,7 @@
                                 <div style="display:flex;gap:4px;">
                                     <button type="submit">OK</button>
                                     {% for error in data.comment_content.errors %}
-                                        <p class="error" data-ref="id_comment_content">{{error}}</p>
+                                        <p class="error" data-ref="{% if comment_conditions.page_offset == 1 %}id__comment_content{% else %}id_comment_content{% endif %}">{{error}}</p>
                                     {% endfor %}
                                 </div>
                             </form>

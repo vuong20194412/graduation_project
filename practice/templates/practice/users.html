@@ -335,18 +335,24 @@
                     <input type="hidden" name="offset" value="{{user_conditions.page_offset}}"/>
                     <input type="hidden" name="filter" value="input"/>
                     <div style="display:flex;flex-direction:column;gap:3px;">
-                        <p style="font-weight:bold;">Lọc:</p>
+                        <p><strong>Lọc:</strong>&nbsp;<span><em>Dùng dấu phẩy để tách biệt các từ khóa.</em></span></p>
                         <div style="display:flex;flex-direction:column;gap:1px;">
-                            <label for="id_filter_by_name">người dùng:</label>
+                            <label for="id_filter_by_name">Họ và tên:</label>
                             <input type="text"
                                    id="id_filter_by_name"
                                    name="filter_by_name"
                                    placeholder="người dùng"
                                    value="{{user_conditions.filter_by_name}}"
                                    title="Ngăn cách các từ khóa bởi dấu phẩy"/>
-                            <span>
-                                Dùng dấu phẩy để tách biệt các từ khóa
-                            </span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:1px;">
+                            <label for="id_filter_by_code">Mã người dùng:</label>
+                            <input type="text"
+                                   id="id_filter_by_code"
+                                   name="filter_by_code"
+                                   placeholder="Mã người dùng"
+                                   value="{{user_conditions.filter_by_code}}"
+                                   title="Ngăn cách các từ khóa bởi dấu phẩy"/>
                         </div>
                         <div>
                             <button type="submit">Tìm kiếm</button>

@@ -22,6 +22,7 @@ h2:not(.native) {
 p:not(.native) {
     box-sizing: border-box;
     margin: 0;
+    word-break: break-word;
 }
 p.error.apply {
     color: var(--p-error-color);
