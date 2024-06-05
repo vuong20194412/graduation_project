@@ -661,18 +661,17 @@ def process_new_answer(request, question_id):
         return OriginalHttpResponseBadRequest()
 
 
-@ensure_is_not_anonymous_user
-def view_detail_question(request, question_id):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
+def view_question(request, question_id, showing_comments: bool = False):
     notification = request.session.get(notification_to_view_detail_question_key_name, '')
     if notification:
         notification = _(notification)
         request.session[notification_to_view_detail_question_key_name] = ''
 
     if request.user.role != 'Admin':
-        question = Question.objects.filter(Q(id=question_id), (Q(state='Approved') | Q(user_id=request.user.id)))
+        if not showing_comments:
+            question = Question.objects.filter(Q(id=question_id), (Q(state='Approved') | Q(user_id=request.user.id)))
+        else:
+            question = Question.objects.filter(id=question_id, state='Approved')
     else:
         question = Question.objects.filter(id=question_id)
 
@@ -680,7 +679,9 @@ def view_detail_question(request, question_id):
         return HttpResponseNotFound(_('<h1>Not Found</h1>'))
     question = question[0]
 
-    http_code = request.GET.get('http_code')
+    params = request.GET
+
+    http_code = params.get('http_code')
     if http_code:
         if http_code == '400':
             return HttpResponseBadRequest()
@@ -698,9 +699,65 @@ def view_detail_question(request, question_id):
         "notification": notification,
         "question": question,
         "past_answers": past_answers,
-        "data": data,
     }
+
+    if showing_comments:
+        data["comment_content"] = {"errors": [], "value": "", "label": _('Bình luận mới')},
+        data["errors"] = []
+
+        data_in_params = params.get('data')
+        if data_in_params:
+            try:
+                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+                if 'comment_content' in data_in_params and isinstance(data_in_params['comment_content'], dict):
+                    comment_content_errors = data_in_params['comment_content'].get('errors')
+                    if comment_content_errors and isinstance(comment_content_errors,
+                                                             type(data['comment_content']['errors'])):
+                        for comment_content_error in comment_content_errors:
+                            data['comment_content']['errors'].append(_(comment_content_error))
+                    comment_content_value = data_in_params['comment_content'].get('value')
+                    if comment_content_value and isinstance(comment_content_value,
+                                                            type(data['comment_content']['value'])):
+                        data['comment_content']['value'] = comment_content_value
+                data_errors = data_in_params.get('errors')
+                if data_errors and isinstance(data_errors, type(data['errors'])):
+                    data['errors'] = data_errors
+            except (UnicodeDecodeError, ValueError):
+                pass
+
+        limit = get_limit_for_list(
+            session=request.session,
+            limit_in_params=params.get('limit', ''),
+            limit_key_name='practice.views.get_comments_in_question__limit'
+        )
+        page_count = math_ceil(question.comment_set.count() / limit) or 1
+        page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
+        offset = (page_offset - 1) * limit
+
+        comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at')[offset:(offset + limit)]
+
+        context.update({
+            "showing_comments": True,
+            "comments": comments,
+            "comment_conditions": {
+                "page_range": range(1, page_count + 1),
+                "limits": [4, 8, 16],
+                "page_offset": page_offset,
+                "limit": limit,
+                "include_limit_exclude_offset_url": f"{reverse('practice:process_comments_in_question', args=[question.id])}?limit={limit}",
+            }
+        })
+
+    context["data"] = data
     return render(request, "practice/detail_question.html", context)
+
+
+@ensure_is_not_anonymous_user
+def view_detail_question(request, question_id):
+    if request.method != 'GET':
+        return OriginalHttpResponseBadRequest()
+
+    return view_question(request, question_id)
 
 
 @ensure_is_not_anonymous_user
@@ -731,66 +788,7 @@ def view_detail_answer(request, answer_id):
 @ensure_is_not_anonymous_user
 def process_comments_in_question(request, question_id):
     if request.method == 'GET':
-        question = Question.objects.filter(id=question_id, state='Approved')
-        if not question:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        question = question[0]
-
-        params = request.GET
-
-        http_code = params.get('http_code')
-        if http_code == '404':
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-
-        data = {
-            "comment_content": {"errors": [], "value": "", "label": _('Bình luận mới')},
-            "errors": []
-        }
-
-        data_in_params = params.get('data')
-        if data_in_params:
-            try:
-                data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
-                if 'comment_content' in data_in_params and isinstance(data_in_params['comment_content'], dict):
-                    comment_content_errors = data_in_params['comment_content'].get('errors')
-                    if comment_content_errors and isinstance(comment_content_errors, type(data['comment_content']['errors'])):
-                        for comment_content_error in comment_content_errors:
-                            data['comment_content']['errors'].append(_(comment_content_error))
-                    comment_content_value = data_in_params['comment_content'].get('value')
-                    if comment_content_value and isinstance(comment_content_value, type(data['comment_content']['value'])):
-                        data['comment_content']['value'] = comment_content_value
-                data_errors = data_in_params.get('errors')
-                if data_errors and isinstance(data_errors, type(data['errors'])):
-                    data['errors'] = data_errors
-            except (UnicodeDecodeError, ValueError):
-                pass
-
-        limit = get_limit_for_list(
-            session=request.session,
-            limit_in_params=params.get('limit', ''),
-            limit_key_name='practice.views.get_comments_in_question__limit'
-        )
-        page_count = math_ceil(question.comment_set.count() / limit) or 1
-        page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-        offset = (page_offset - 1) * limit
-
-        comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at')[offset:(offset + limit)]
-
-        context = {
-            "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
-            "showing_comments": True,
-            "question": question,
-            "comments": comments,
-            "data": data,
-            "comment_conditions": {
-                "page_range": range(1, page_count + 1),
-                "limits": [4, 8, 16],
-                "page_offset": page_offset,
-                "limit": limit,
-                "include_limit_exclude_offset_url": f"{reverse('practice:process_comments_in_question', args=[question.id])}?limit={limit}",
-            },
-        }
-        return render(request, "practice/detail_question.html", context)
+        return view_question(request, question_id)
 
     elif request.method == 'POST':
         question = Question.objects.filter(id=question_id, state='Approved')

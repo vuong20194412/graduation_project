@@ -10,6 +10,7 @@
 
     <link rel="stylesheet" href="{% static 'practice/css/generic_setting.css' %}">
     <link rel="stylesheet" href="{% static 'practice/css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'practice/css/list_nav.css' %}">
 
     <style>
         #content_tag {
@@ -186,33 +187,6 @@
             background-color: #FFFFFF;
             box-shadow: 0px 4px 4px 0px #B3B3B3;
         }
-        main>.in_main>div.nav_container {
-            box-sizing: border-box;
-            width: 100%;
-            max-width: 100%;
-            display: flex;
-            height: 48px;
-            gap: 16px;
-            padding: 0 8px;
-        }
-        @media only screen and (max-width:500px) {
-          /* For mobile phones: */
-          main>.in_main>div.nav_container {
-            height: 96px;
-            gap: 0;
-            flex-direction: column;
-          }
-        }
-        main>.in_main>div.nav_container>nav {
-            box-sizing: border-box;
-            width: fit-content;
-            max-width: 100%;
-            display: flex;
-            height: 48px;
-            align-items: center;
-            padding: 4px 0;
-            gap: 4px;
-        }
         main>.in_main .user_addition {
             box-sizing: border-box;
             height: fit-content;
@@ -220,38 +194,6 @@
             grid-template-columns: 25% 75%;
             border-top: 1px outset #000000;
             padding: 2px;
-        }
-        main>.in_main>div.nav_container>nav>a {
-            box-sizing: border-box;
-            height: 36px;
-            width: 36px;
-            border: 1px solid #000000;
-            border-radius: 4px;
-            background-color: #E7F2FE;
-            text-decoration: none;
-            color: #000000;
-            display: inline-block;
-            text-align: center;
-            line-height: 34px;
-        }
-        main>.in_main>div.nav_container>nav>a:visited {
-            color: #000000;
-        }
-        main>.in_main>div.nav_container>nav>a.selected_a {
-            border-width: 2px;
-            line-height: 32px;
-            background-color: #6CB0F9;
-            color: #FFFFFF;
-        }
-        main>.in_main>div.nav_container>nav>a:not(.selected_a):hover {
-            border-width: 2px;
-            line-height: 32px;
-            background-color: #6CB0F9;
-            opacity: 0.8;
-            color: #FFFFFF;
-        }
-        main>.in_main>div.nav_container>nav>a.selected_a:hover {
-            opacity: 0.6;
         }
         #limit_user {
             box-sizing: border-box;
@@ -278,6 +220,9 @@
         }
         #limit_user:not(:active):not(:focus):not(:focus-within):not(:hover)>form {
             display: none;
+        }
+        nav.in_main_nav {
+            padding: 0 8px;
         }
     </style>
     <style>
