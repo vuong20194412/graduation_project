@@ -458,6 +458,7 @@ def process_new_question(request):
             'tag_id': {'errors': [], 'value': 0},
             'hashtags': {'value': []},
             'content': {'errors': [], 'value': ''},
+            'latex_content': {'errors': [], 'value': ''},
             'choices': {'errors': [], 'value': []},
             'image': {'errors': []},
             'errors': [],
@@ -466,12 +467,13 @@ def process_new_question(request):
         is_valid = True
         params = request.POST
 
-        latex_content = params.get('latex_content')
+        data['latex_content']['value'] = params.get('latex_content', '')
+        latex_content = data['latex_content']['value'].strip()
         if latex_content:
-            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}.png"
-            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
             if not os.path.exists(settings.MEDIA_ROOT):
                 os.makedirs(settings.MEDIA_ROOT)
+            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}.png"
+            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
             with open(latex_image_pathname, 'wb+') as f:
                 pass
             preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
