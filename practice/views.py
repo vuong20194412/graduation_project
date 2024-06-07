@@ -469,6 +469,8 @@ def process_new_question(request):
         if latex_content:
             latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}.png"
             latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
+            with open(latex_image_pathname, 'wb+') as f:
+                pass
             preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
             data['latex_image_url'] = settings.MEDIA_URL + latex_image_filename
 
