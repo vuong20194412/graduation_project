@@ -269,17 +269,6 @@
 
     <!-- content -->
     <div id="content_tag">
-        <aside class="left_aside">
-            <div class="in_left_aside">
-                <nav>
-                    <a class="{% if evaluation_conditions.type != 'comment' %}selected_a{% endif %}"
-                       href="{% url evaluation_conditions.path_name %}?limit={{evaluation_conditions.limit}}">Câu hỏi</a>
-                    <a class="{% if evaluation_conditions.type == 'comment' %}selected_a{% endif %}"
-                       href="{% url evaluation_conditions.path_name %}?type=comment&limit={{evaluation_conditions.limit}}">Bình luận</a>
-                    <hr/>
-                </nav>
-            </div>
-        </aside>
         <main>
             <div class="in_main" autofocus>
                 <div style="box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;height:48px;padding: 4px 8px;">
@@ -289,17 +278,17 @@
                             <strong>&#9013</strong>
                         </div>
 
-                        <form method="GET" title="Chọn số câu hỏi trên mỗi trang">
+                        <form method="GET" title="Chọn số đánh giá trên mỗi trang">
                             {% for limit in evaluation_conditions.limits %}
                                 {% if evaluation_conditions.limit != limit %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit_{{limit}}" type="radio" value="{{limit}}"/>
-                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} đánh giá/trang</label>
                                 </div>
                                 {% else %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit__{{limit}}" type="radio" value="{{limit}}" checked/>
-                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} đánh giá/trang</label>
                                 </div>
                                 {% endif %}
                             {% endfor %}
@@ -344,7 +333,6 @@
         <aside class="right_aside">
             <div class="in_right_aside">
                 <form method="GET" action="{% url evaluation_conditions.path_name %}">
-                    <input type="hidden" name="type" value="{{evaluation_conditions.type}}">
                     <input type="hidden" name="limit" value="{{evaluation_conditions.limit}}">
                     <input type="hidden" name="offset" value="{{evaluation_conditions.page_offset}}"/>
                     <input type="hidden" name="filter" value="input"/>

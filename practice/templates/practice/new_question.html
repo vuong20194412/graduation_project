@@ -79,6 +79,7 @@
         main>.in_main {
             box-sizing: border-box;
             width: 100%;
+            min-height: fit-content;
             display: flex;
             flex-direction: column;
             background-color: #FFFFFF;
@@ -93,6 +94,23 @@
             padding-top: 8px;
         }
         main>.in_main>form>div.row {
+            box-sizing: border-box;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            padding-left: 8px;
+            padding-right: 8px;
+        }
+
+        #preview_question {
+            box-sizing: border-box;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-top: 8px;
+        }
+        #preview_question>div.row {
             box-sizing: border-box;
             width: 100%;
             display: flex;
@@ -152,6 +170,16 @@
                             <p class="error" data-ref="id_content">{{error}}</p>
                         {% endfor %}
                     </div>
+                    <div class="row">
+                        <label class="native" for="id_latex_content">{{data.latex_content.label}}:</label>
+                        <textarea name="latex_content"
+                                  id="id_latex_content"
+                                  placeholder="{{data.latex_content.label}}"
+                                  title="{{data.latex_content.label}}">{{data.latex_content.value}}</textarea>
+                        {% for error in data.latex_content.errors %}
+                            <p class="error" data-ref="id_latex_content">{{error}}</p>
+                        {% endfor %}
+                    </div>
 
                     <div class="row">
                         <label class="native" for="id_choices">{{data.choices.label}}:</label>
@@ -190,9 +218,54 @@
                     </div>
 
                     <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
-                        <button type="submit">Tạo</button>
+                        <input type="submit" name="create" value="Tạo"/>
+                        <input type="submit" name="preview" value="Xem trước"/>
                     </div>
                 </form>
+                {% if preview_question %}
+                    <div id="preview_question">
+                        <div>
+                            <h2>Phần xem trước</h2>
+                        </div>
+                        {% if preview_question.get_display_hashtags %}
+                            <div class="row">
+                                <p style="max-width:calc(100% - 60px);word-break:break-word;">{{preview_question.get_display_hashtags}}</p>
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{preview_question.content}}</p>
+                            {% if preview_question.latex_image %}
+                                <div class="row">
+                                    <img src="{{preview_question.latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if preview_question.choices %}
+                            <div class="row">
+                                <p>&nbsp;&nbsp;Các lựa chọn:</p>
+                                <ol>
+                                    {% for choice in preview_question.choices %}
+                                    <li style="word-break:break-word;">{{choice.content}}</li>
+                                    {% endfor %}
+                                </ol>
+                            </div>
+                        {% endif %}
+
+                        {% if preview_question.addition_image %}
+                            <div class="row">
+                                <img src="{{preview_question.addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            </div>
+                        {% endif %}
+
+                        {% if latex_image_url %}
+                            <div class="row">
+                                <img src="{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             </div>
         </main>
     </div>

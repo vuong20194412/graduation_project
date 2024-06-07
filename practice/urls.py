@@ -17,8 +17,10 @@ urlpatterns = [
     path('comment/admin/', views.view_unlocked_comments_by_admin, name='view_unlocked_comments_by_admin'),
 
     path('evaluation/<int:evaluation_id>/', views.process_evaluation_by_admin, name='process_evaluation_by_admin'),
-    path('evaluation/admin/processed/', views.view_locked_evaluations_by_admin, name='view_locked_evaluations_by_admin'),
-    path('evaluation/admin/', views.view_unlocked_evaluations_by_admin, name='view_unlocked_evaluations_by_admin'),
+    path('evaluation/admin/processed/comment/', views.view_locked_comment_evaluations_by_admin, name='view_locked_comment_evaluations_by_admin'),
+    path('evaluation/admin/processed/', views.view_locked_question_evaluations_by_admin, name='view_locked_question_evaluations_by_admin'),
+    path('evaluation/admin/comment/', views.view_unlocked_comment_evaluations_by_admin, name='view_unlocked_comment_evaluations_by_admin'),
+    path('evaluation/admin/', views.view_unlocked_question_evaluations_by_admin, name='view_unlocked_question_evaluations_by_admin'),
 
     path('profile/<int:profile_id>/', views.process_profile, name='process_profile'),
 

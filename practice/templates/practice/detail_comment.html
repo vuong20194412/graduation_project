@@ -141,7 +141,7 @@
 
                 {% if user.role == 'Admin' %}
                     <div style="padding:8px;">
-                        <p>Trạng thái bình luận: {{comment.get_state_display}}</p>
+                        <p><strong>Trạng thái bình luận:</strong>&nbsp;{{comment.get_state_display}}</p>
                     {% if comment.state != 'Locked' %}
                         <form method="POST" style="margin-bottom:0;"
                               action="{% url 'practice:process_comment_by_admin' comment.id %}">
@@ -169,7 +169,7 @@
                         <h2>Phần bình luận</h2>
                     </div>
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
-                        <p><strong>Mã tác giả:</strong> <a href="{% url 'practice:process_profile' comment.user.id %}" style="text-decoration:none;">{{comment.user.code}}</a>
+                        <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' comment.user.id %}" style="text-decoration:none;">{{comment.user.code}}</a>
                     </div>
                     <div style="display:flex;gap:3px;">
                         <strong style="width:fit-content;min-width:fit-content;">Nội dung:</strong>
@@ -181,7 +181,7 @@
                         <h2>Phần câu hỏi</h2>
                     </div>
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
-                        <p><strong>Mã tác giả:</strong><a href="{% url 'practice:process_profile' comment.question.user.id %}" style="text-decoration:none;">{{comment.question.user.code}}</a></p>
+                        <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' comment.question.user.id %}" style="text-decoration:none;">{{comment.question.user.code}}</a></p>
                     </div>
                     {% if comment.question.get_display_hashtags %}
                         <div class="row">

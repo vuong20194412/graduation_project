@@ -278,17 +278,17 @@
                             <strong>&#9013</strong>
                         </div>
 
-                        <form method="GET" title="Chọn số câu hỏi trên mỗi trang">
+                        <form method="GET" title="Chọn số người dùng trên mỗi trang">
                             {% for limit in user_conditions.limits %}
                                 {% if user_conditions.limit != limit %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit_{{limit}}" type="radio" value="{{limit}}"/>
-                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} người dùng/trang</label>
                                 </div>
                                 {% else %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit__{{limit}}" type="radio" value="{{limit}}" checked/>
-                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} người dùng/trang</label>
                                 </div>
                                 {% endif %}
                             {% endfor %}

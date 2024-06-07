@@ -48,27 +48,27 @@
         <nav id="id_header_nav">
             {% if not type %}
                 <a href="{% url 'practice:view_pending_questions_by_admin' %}" class="selected_a">Câu hỏi</a>
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}">Đánh giá</a>
                 <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận</a>
                 <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng</a>
             {% elif type == 'evaluation' %}
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}" class="selected_a">Đánh giá</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}" class="selected_a">Đánh giá</a>
                 <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi</a>
                 <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận</a>
                 <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng</a>
             {% elif type == 'comment' %}
                 <a href="{% url 'practice:view_unlocked_comments_by_admin' %}" class="selected_a">Bình luận</a>
                 <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi</a>
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}">Đánh giá</a>
                 <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng</a>
             {% elif type == 'user' %}
                 <a href="{% url 'practice:view_unlocked_users_by_admin' %}" class="selected_a">Người dùng</a>
                 <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi</a>
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}">Đánh giá</a>
                 <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận</a>
             {% else %}
                 <a href="{% url 'practice:view_pending_questions_by_admin' %}">Câu hỏi</a>
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}">Đánh giá</a>
                 <a href="{% url 'practice:view_unlocked_comments_by_admin' %}">Bình luận</a>
                 <a href="{% url 'practice:view_unlocked_users_by_admin' %}">Người dùng</a>
             {% endif %}
@@ -160,15 +160,31 @@
         </nav>
     {% elif type == 'evaluation' %}
         <nav>
-            {% if 'practice:view_unlocked_evaluations_by_admin' == current_path_name %}
-                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Đánh giá chờ xử lý</a>
-                <a href="{% url 'practice:view_locked_evaluations_by_admin' %}">Đánh giá đã xử lý</a>
-            {% elif 'practice:view_locked_evaluations_by_admin' == current_path_name %}
-                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a">Đánh giá đã xử lý</a>
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá chờ xử lý</a>
+            {% if 'practice:view_unlocked_question_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi chờ xử lý</a>
+                <a href="{% url 'practice:view_unlocked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận chờ xử lý</a>
+                <a href="{% url 'practice:view_locked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi đã xử lý</a>
+                <a href="{% url 'practice:view_locked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận đã xử lý</a>
+            {% elif 'practice:view_unlocked_comment_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận chờ xử lý</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi chờ xử lý</a>
+                <a href="{% url 'practice:view_locked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi đã xử lý</a>
+                <a href="{% url 'practice:view_locked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận đã xử lý</a>
+            {% elif 'practice:view_locked_question_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi đã xử lý</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi chờ xử lý</a>
+                <a href="{% url 'practice:view_unlocked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận chờ xử lý</a>
+                <a href="{% url 'practice:view_locked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận đã xử lý</a>
+            {% elif 'practice:view_locked_comment_evaluations_by_admin' == current_path_name %}
+                <a href="{{current_include_limit_exclude_offset_url}}&offset={{current_page_offset}}" class="selected_a" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận đã xử lý</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi chờ xử lý</a>
+                <a href="{% url 'practice:view_unlocked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận chờ xử lý</a>
+                <a href="{% url 'practice:view_locked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi đã xử lý</a>
             {% else %}
-                <a href="{% url 'practice:view_unlocked_evaluations_by_admin' %}">Đánh giá chờ xử lý</a>
-                <a href="{% url 'practice:view_locked_evaluations_by_admin' %}">Đánh giá đã xử lý</a>
+                <a href="{% url 'practice:view_unlocked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi chờ xử lý</a>
+                <a href="{% url 'practice:view_unlocked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận chờ xử lý</a>
+                <a href="{% url 'practice:view_locked_question_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá câu hỏi đã xử lý</a>
+                <a href="{% url 'practice:view_locked_comment_evaluations_by_admin' %}" style="min-width:fit-content;padding:0 8px;">Đánh giá bình luận đã xử lý</a>
             {% endif %}
         </nav>
     {% elif type == 'comment' %}

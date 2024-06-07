@@ -1,7 +1,9 @@
 import datetime
 import json
+import pathlib
 import re
 from math import ceil as math_ceil
+from sympy import preview
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
@@ -13,10 +15,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 from users.models import Log
 from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 
-from .models import QuestionTag, Question, Answer, Comment, Evaluation
+from .models import QuestionTag, Question, Answer, Comment, Evaluation, QuestionImage
 
 
 class HttpResponseBadRequest(OriginalHttpResponseBadRequest):
@@ -88,19 +91,15 @@ def view_questions(request, path_name=None, filters=None):
     filters = filters or []
 
     tag_id = convert_to_int(string=params.get('tid', ''), default=0)
+    tag_name = ''
     tags = QuestionTag.objects.all()
-    if request.user.role != 'Admin':
-        if tags:
-            if tag_id <= 0 or not tags.filter(id=tag_id):
-                tag_id = tags[0].id
+    if tag_id != -1:
+        tag = tags.filter(id=tag_id)
+        if tag:
             filters.append(Q(tag_id=tag_id))
+            tag_name = tag[0].name
         else:
-            raise Http404()
-    elif tag_id != -1:
-        if tag_id <= 0 or not tags.filter(id=tag_id):
             tag_id = -1
-        else:
-            filters.append(Q(tag_id=tag_id))
 
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
 
@@ -164,6 +163,7 @@ def view_questions(request, path_name=None, filters=None):
             "page_range": range(1, page_count + 1),
             "limits": [4, 8, 16],
             "tag_id": tag_id,
+            "tag_name": tag_name,
             "limit": limit,
             "page_offset": page_offset,
             'filter_by_created_at_from': _filters_and_sorters.get('filter_by_created_at_from'),
@@ -371,13 +371,14 @@ def process_new_question(request):
             'tag_id': {'errors': [], 'value': 0, 'label': _('Nhãn câu hỏi')},
             'hashtags': {'errors': [], 'value': [], 'label': _('Các hashtag')},
             'content': {'errors': [], 'value': '', 'label': _('Nội dung câu hỏi')},
+            'latex_content': {'errors': [], 'value': '', 'label': _('Bổ sung nội dung câu hỏi bằng latex')},
             'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice], 'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng))')},
             'image': {'errors': [], 'value': '', 'label': _('Hình ảnh (1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB)')},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
 
-        referer_url = request.META['HTTP_REFERER']
+        referer_url = request.META.get('HTTP_REFERER')
         if referer_url and referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))):
             pattern = re.compile(r'\?tid=[0-9]+')
             match = re.search(pattern=pattern, string=referer_url)
@@ -387,6 +388,8 @@ def process_new_question(request):
 
         params = request.GET
         data_in_params = params.get('data')
+        preview_question = {}
+        latex_image_url = ''
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
@@ -426,13 +429,26 @@ def process_new_question(request):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+                preview_question = data_in_params.get('preview_question')
+                if preview_question:
+                    addition_image_id = convert_to_non_negative_int(preview_question.get('addition_image_id', ''))
+                    if addition_image_id:
+                        addition_image = QuestionImage.objects.filter(id=addition_image_id)
+                        if addition_image:
+                            preview_question['addition_image'] = addition_image[0].image
+
+                latex_image_url = data_in_params.get('latex_image_url')
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
         context = {
             'tags': QuestionTag.objects.all(),
             'data': data,
+            'preview_question': preview_question,
+            'latex_image_url': latex_image_url,
         }
+
         return render(request, "practice/new_question.html", context)
 
     elif request.method == 'POST':
@@ -448,6 +464,13 @@ def process_new_question(request):
 
         is_valid = True
         params = request.POST
+
+        latex_content = params.get('latex_content')
+        if latex_content:
+            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}.png"
+            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
+            preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
+            data['latex_image_url'] = settings.MEDIA_URL + latex_image_filename
 
         image = request.FILES.get('image')
         if image:
@@ -511,7 +534,25 @@ def process_new_question(request):
             is_valid = False
             data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
 
-        if is_valid:
+        if params.get('preview'):
+            hashtags = set()
+            for hashtag in data['hashtags']['value']:
+                hashtag = hashtag.strip()
+                if hashtag:
+                    hashtags.add(hashtag)
+            data['preview_question'] = {
+                'content': content,
+                'choices': choices,
+                'tag_id': tag_id,
+                'hashtags': ','.join(hashtags),
+            }
+            if image and not data['image']['errors']:
+                qi = QuestionImage(name='tmp_addition_question_image',
+                                   image=image,
+                                   created_at=datetime.datetime.now(datetime.timezone.utc))
+                qi.save()
+                data['preview_question']['addition_image_id'] = f'{qi.id}'
+        elif is_valid:
             hashtags = set()
             for hashtag in data['hashtags']['value']:
                 hashtag = hashtag.strip()
@@ -523,15 +564,19 @@ def process_new_question(request):
                          choices=choices,
                          tag_id=tag_id,
                          user_id=request.user.id,
-                         image=image,
                          hashtags=','.join(hashtags),
                          created_at=datetime.datetime.now(datetime.timezone.utc))
             q.save()
+            qi = QuestionImage(name='addition_question_image',
+                               question_id=q.id,
+                               image=image,
+                               created_at=datetime.datetime.now(datetime.timezone.utc))
+            qi.save()
 
             request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=q.id)
 
-        elif image and not data['image']['errors']:
+        if image and not data['image']['errors']:
             data['image']['errors'].append('Lưu ý: Ảnh chưa được chọn, chọn ảnh nếu cần thiết.')
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
@@ -1157,14 +1202,7 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
 
     filters = filters or []
 
-    evaluation_type = params.get('type', '')
-    if evaluation_type != 'comment':
-        evaluation_type = 'question'
-        filters.append(Q(comment__isnull=True))
-    else:
-        filters.append(Q(comment__isnull=False))
-
-    filters_and_sorters_key_name = f'{path_name}.{evaluation_type}__filters_and_sorters'
+    filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
@@ -1206,12 +1244,11 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "evaluations": evaluations,
         "evaluation_conditions": {
-            "type": evaluation_type,
             "page_range": range(1, page_count + 1),
             "limits": [4, 8, 16],
             "path_name": path_name,
             "limit": limit,
-            "include_limit_exclude_offset_url": f"{reverse(path_name)}?type={evaluation_type}&limit={limit}",
+            "include_limit_exclude_offset_url": f"{reverse(path_name)}?limit={limit}",
             "page_offset": page_offset,
             'filter_by_content': filter_by_content,
         },
@@ -1220,26 +1257,50 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
 
 
 @ensure_is_admin
-def view_unlocked_evaluations_by_admin(request):
+def view_unlocked_question_evaluations_by_admin(request):
     if request.method != 'GET':
         return OriginalHttpResponseBadRequest()
 
     return view_evaluations_by_admin(
         request=request,
-        path_name='practice:view_unlocked_evaluations_by_admin',
-        filters=[~Q(state='Locked')]
+        path_name='practice:view_unlocked_question_evaluations_by_admin',
+        filters=[~Q(state='Locked'), Q(comment__isnull=True)]
     )
 
 
 @ensure_is_admin
-def view_locked_evaluations_by_admin(request):
+def view_unlocked_comment_evaluations_by_admin(request):
     if request.method != 'GET':
         return OriginalHttpResponseBadRequest()
 
     return view_evaluations_by_admin(
         request=request,
-        path_name='practice:view_locked_evaluations_by_admin',
-        filters=[Q(state='Locked')]
+        path_name='practice:view_unlocked_comment_evaluations_by_admin',
+        filters=[~Q(state='Locked'), Q(comment__isnull=False)]
+    )
+
+
+@ensure_is_admin
+def view_locked_question_evaluations_by_admin(request):
+    if request.method != 'GET':
+        return OriginalHttpResponseBadRequest()
+
+    return view_evaluations_by_admin(
+        request=request,
+        path_name='practice:view_locked_question_evaluations_by_admin',
+        filters=[Q(state='Locked'), Q(comment__isnull=True)]
+    )
+
+
+@ensure_is_admin
+def view_locked_comment_evaluations_by_admin(request):
+    if request.method != 'GET':
+        return OriginalHttpResponseBadRequest()
+
+    return view_evaluations_by_admin(
+        request=request,
+        path_name='practice:view_locked_comment_evaluations_by_admin',
+        filters=[Q(state='Locked'), Q(comment__isnull=False)]
     )
 
 
@@ -1363,6 +1424,7 @@ def view_comments_by_admin(request, path_name=None, filters=None):
 
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
     filter_by_content = _filters_and_sorters['filter_by_content']
+    filter_by_author_code = _filters_and_sorters['filter_by_author_code']
 
     filters = filters or []
     if filter_by_content:
@@ -1370,9 +1432,8 @@ def view_comments_by_admin(request, path_name=None, filters=None):
         if contents:
             filters.append(Q(content__iregex=r"^.*" + ('|'.join(contents)) + r".*$"))
 
-    author_codes = _filters_and_sorters['filter_by_author_code']
-    if author_codes:
-        author_codes = [author_code.strip() for author_code in author_codes.split(',') if author_code.strip()]
+    if filter_by_author_code:
+        author_codes = [author_code.strip() for author_code in filter_by_author_code.split(',') if author_code.strip()]
         if author_codes:
             filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
@@ -1398,6 +1459,7 @@ def view_comments_by_admin(request, path_name=None, filters=None):
             "include_limit_exclude_offset_url": f"{reverse(path_name)}?limit={limit}",
             "page_offset": page_offset,
             'filter_by_content': filter_by_content,
+            'filter_by_author_code': filter_by_author_code,
         },
     }
     return render(request, "practice/comments.html", context)

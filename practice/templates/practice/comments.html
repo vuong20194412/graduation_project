@@ -278,17 +278,17 @@
                             <strong>&#9013</strong>
                         </div>
 
-                        <form method="GET" title="Chọn số câu hỏi trên mỗi trang">
+                        <form method="GET" title="Chọn số bình luận trên mỗi trang">
                             {% for limit in comment_conditions.limits %}
                                 {% if comment_conditions.limit != limit %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit_{{limit}}" type="radio" value="{{limit}}"/>
-                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit_{{limit}}" style="padding-left:4px;width:100%">{{limit}} bình luận/trang</label>
                                 </div>
                                 {% else %}
                                 <div style="display:flex;align-items:center;">
                                     <input name="limit" id="id_limit__{{limit}}" type="radio" value="{{limit}}" checked/>
-                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} câu hỏi/trang</label>
+                                    <label for="id_limit__{{limit}}" style="padding-left:4px;width:100%">{{limit}} bình luận/trang</label>
                                 </div>
                                 {% endif %}
                             {% endfor %}

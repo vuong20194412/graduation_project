@@ -20,3 +20,6 @@ type nul > users/middleware.py
 
 #To add ImageField
 py -m pip install Pillow
+
+#latex to image
+py -m pip install sympy

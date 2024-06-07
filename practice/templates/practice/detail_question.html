@@ -119,16 +119,6 @@
         main>.in_main>div.buttons>a.button:last_of_type {
             margin-right: 8px;
         }
-        #id_question_author {
-            box-sizing: border-box;
-            width: fit-content;
-            max-width: 11em;
-            display: flex;
-            flex-direction: column;
-            justify-content: end;
-            align-self: flex-end;
-            padding: 8px;
-        }
         #id_question {
             box-sizing: border-box;
             width: 100%;
@@ -140,6 +130,7 @@
         #id_question>div.row {
             display:flex;
             flex-direction:column;
+            margin-top: 8px;
         }
 
         #limit_comment {
@@ -266,13 +257,10 @@
 
         <main>
             <div class="in_main" autofocus>
-                <div id="id_question_author">
-                    <p><strong >Tác giả: </strong> <span style="max-width:calc(50% - 60px);word-break:break-word;">{{question.user.name}}</span>
-                    </p>
-                    <p><strong>Mã tác giả:</strong> <a href="{% url 'practice:process_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a>
-                    </p>
-                </div>
                 <div id="id_question">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
+                        <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a></p>
+                    </div>
                     {% if question.get_display_hashtags %}
                         <div class="row">
                             <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.get_display_hashtags}}</p>
@@ -285,7 +273,7 @@
 
                     {% if question.choices %}
                     <div class="row">
-                        <p>Các lựa chọn:</p>
+                        <p>&nbsp;&nbsp;Các lựa chọn:</p>
                         <ol>
                             {% for choice in question.choices %}
                             <li style="word-break:break-word;">{{choice.content}}</li>

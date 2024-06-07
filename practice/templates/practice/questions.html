@@ -282,23 +282,21 @@
         <aside class="left_aside">
             <div class="in_left_aside">
                 <nav>
-                    {% if user.role == 'Admin' %}
-                        <a class="{% if question_conditions.tag_id == -1 %}selected_a{% endif %}"
-                           href="{% url path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
-                    {% endif %}
-                    {% for tag in tags %}
-                        {% if question_conditions.tag_id == tag.id %}
-                            <a class="selected_a" href="{% url path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
-                        {% endif %}
-                    {% endfor %}
-                    {% for tag in tags %}
-                        {% if question_conditions.tag_id != tag.id %}
+                    {% if question_conditions.tag_id != -1 %}
+                        <a class="selected_a" href="{% url path_name %}?tid={{question_conditions.tag_id}}&limit={{question_conditions.limit}}">{{question_conditions.tag_name}}</a>
+                        <a href="{% url path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
+                        {% for tag in tags %}
+                            {% if question_conditions.tag_id != tag.id %}
+                                <a href="{% url path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <a class="selected_a" href="{% url path_name %}?tid=-1&limit={{question_conditions.limit}}">Tất cả</a>
+                        {% for tag in tags %}
                             <a href="{% url path_name %}?tid={{tag.id}}&limit={{question_conditions.limit}}">{{tag.name}}</a>
-                        {% endif %}
-                    {% endfor %}
-                    {% if tags or user.role == 'Admin' %}
-                        <hr/>
+                        {% endfor %}
                     {% endif %}
+                    <hr/>
                 </nav>
             </div>
         </aside>

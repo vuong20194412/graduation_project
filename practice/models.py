@@ -1,4 +1,5 @@
 import datetime
+import random
 
 from django.db import models, connections
 from django.utils.translation import gettext_lazy as _
@@ -35,12 +36,6 @@ class Question(models.Model):
     # [{'content': text, 'is_true': bool}]
     choices = models.JSONField(verbose_name=_('các lựa chọn'), default=list, )
 
-    def upload_to(self, filename):
-        # "images/practice/%Y%m%d%H%M%S%f" + removed_#_code + filename
-        code = getattr(self.user, 'code', '#')[1:]
-        return f"images/practice/{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{code}/" + filename
-
-    image = models.ImageField(verbose_name=_('tên tệp hình ảnh'), upload_to=upload_to, )
     tag = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=QuestionTag, on_delete=models.RESTRICT, )
     user = models.ForeignKey(verbose_name=_('người tạo'), to=get_user_model(), on_delete=models.CASCADE, )
     hashtags = models.TextField(verbose_name=_('các hashtag'), default='')
@@ -67,6 +62,37 @@ class Question(models.Model):
     def get_number_of_comments(self):
         return self.comment_set.count()
 
+    def get_latex_content_images(self):
+        if self.id:
+            images = QuestionImage.objects.filter(question_id=self.id, name='latex_content_image')
+            if images:
+                return images
+        return []
+
+    def get_addition_image(self):
+        if self.id:
+            image = QuestionImage.objects.filter(question_id=self.id, name='addition_question_image')
+            if image:
+                return image[0]
+        return None
+
+
+class QuestionImage(models.Model):
+    name = models.CharField(_('tên mục đích ảnh'), max_length=255)
+    question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, null=True)
+
+    def upload_to(self, filename):
+        if self.question:
+            question_id = f'{self.question.id}'
+        else:
+            question_id = f'tmp{random.randrange(1, 999999)}'
+        return f"images/practice/{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{question_id}/" + filename
+    image = models.ImageField(verbose_name=_('tên tệp hình ảnh'), upload_to=upload_to, )
+    # datetime.datetime.now(datetime.timezone.utc)
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
+
+    objects = models.Manager()
+
 
 class Answer(models.Model):
     # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn
@@ -91,7 +117,7 @@ class Comment(models.Model):
     user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('Thời điểm tạo'), )
-    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), default=datetime.datetime.now(datetime.timezone.utc))
+    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), )
 
     objects = models.Manager()
 
