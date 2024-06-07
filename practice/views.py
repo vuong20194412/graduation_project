@@ -414,6 +414,14 @@ def process_new_question(request):
                     content_value = data_in_params['content'].get('value')
                     if content_value and isinstance(content_value, type(data['content']['value'])):
                         data['content']['value'] = content_value
+                if 'latex_content' in data_in_params and isinstance(data_in_params['latex_content'], dict):
+                    latex_content_errors = data_in_params['latex_content'].get('errors')
+                    if latex_content_errors and isinstance(latex_content_errors, type(data['latex_content']['errors'])):
+                        for latex_content_error in latex_content_errors:
+                            data['latex_content']['errors'].append(_(latex_content_error))
+                    latex_content_value = data_in_params['latex_content'].get('value')
+                    if latex_content_value and isinstance(latex_content_value, type(data['latex_content']['value'])):
+                        data['latex_content']['value'] = latex_content_value
                 if 'choices' in data_in_params and isinstance(data_in_params['choices'], dict):
                     choices_errors = data_in_params['choices'].get('errors')
                     if choices_errors and isinstance(choices_errors, type(data['choices']['errors'])):
