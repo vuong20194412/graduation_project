@@ -62,31 +62,32 @@ class Question(models.Model):
     def get_number_of_comments(self):
         return self.comment_set.count()
 
-    def get_latex_content_images(self):
+    def get_latex_image(self):
         if self.id:
-            images = QuestionImage.objects.filter(question_id=self.id, name='latex_content_image')
-            if images:
-                return images
-        return []
+            image = QuestionImage.objects.filter(question_id=self.id, name='question_latex_image')
+            if image:
+                return image[0].image
+        return None
 
     def get_addition_image(self):
         if self.id:
-            image = QuestionImage.objects.filter(question_id=self.id, name='addition_question_image')
+            image = QuestionImage.objects.filter(question_id=self.id, name='question_addition_image')
             if image:
-                return image[0]
+                return image[0].image
         return None
 
 
 class QuestionImage(models.Model):
     name = models.CharField(_('tên mục đích ảnh'), max_length=255)
-    question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, null=True)
+    question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, null=False)
 
     def upload_to(self, filename):
-        if self.question:
-            question_id = f'{self.question.id}'
-        else:
-            question_id = f'tmp{random.randrange(1, 999999)}'
-        return f"images/practice/{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{question_id}/" + filename
+        question = self.question
+        qid = question.id
+        code = question.user.code[1:]
+        now = self.created_at
+        return f"images/practice/{now.strftime('%Y%m%d%H')}/{code}/{now.strftime('%M%S%f')}{qid}_" + filename
+
     image = models.ImageField(verbose_name=_('tên tệp hình ảnh'), upload_to=upload_to, )
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('thời điểm tạo'), )

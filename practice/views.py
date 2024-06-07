@@ -1,10 +1,12 @@
 import datetime
 import json
-import os.path
+import os
 import pathlib
 import re
 from math import ceil as math_ceil
-from sympy import preview
+import sympy
+from io import BytesIO
+from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
@@ -17,6 +19,7 @@ from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.core.files import File
 from users.models import Log
 from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 
@@ -389,8 +392,10 @@ def process_new_question(request):
 
         params = request.GET
         data_in_params = params.get('data')
-        preview_question = {}
-        latex_image_url = ''
+        context = {
+            'tags': QuestionTag.objects.all(),
+            'data': data,
+        }
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
@@ -438,25 +443,11 @@ def process_new_question(request):
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-                preview_question = data_in_params.get('preview_question')
-                if preview_question:
-                    addition_image_id = convert_to_non_negative_int(preview_question.get('addition_image_id', ''))
-                    if addition_image_id:
-                        addition_image = QuestionImage.objects.filter(id=addition_image_id)
-                        if addition_image:
-                            preview_question['addition_image'] = addition_image[0].image
-
-                latex_image_url = data_in_params.get('latex_image_url')
-
+                context['preview_question'] = data_in_params.get('preview_question')
+                context['addition_image_url'] = data_in_params.get('addition_image_url')
+                context['latex_image_url'] = data_in_params.get('latex_image_url')
             except (UnicodeDecodeError, ValueError):
                 pass
-
-        context = {
-            'tags': QuestionTag.objects.all(),
-            'data': data,
-            'preview_question': preview_question,
-            'latex_image_url': latex_image_url,
-        }
 
         return render(request, "practice/new_question.html", context)
 
@@ -474,18 +465,6 @@ def process_new_question(request):
 
         is_valid = True
         params = request.POST
-
-        data['latex_content']['value'] = params.get('latex_content', '')
-        latex_content = data['latex_content']['value'].strip()
-        if latex_content:
-            if not os.path.exists(settings.MEDIA_ROOT):
-                os.makedirs(settings.MEDIA_ROOT)
-            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}.png"
-            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
-            with open(latex_image_pathname, 'wb+') as f:
-                pass
-            preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
-            data['latex_image_url'] = settings.MEDIA_URL + latex_image_filename
 
         image = request.FILES.get('image')
         if image:
@@ -549,6 +528,17 @@ def process_new_question(request):
             is_valid = False
             data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
 
+        data['latex_content']['value'] = params.get('latex_content', '')
+        latex_content = data['latex_content']['value'].strip()
+        latex_image_pathname = ''
+        if latex_content:
+            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}latex.png"
+            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
+            with open(latex_image_pathname, 'wb+') as f:
+                pass
+            sympy.preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
+            data['latex_image_url'] = settings.MEDIA_URL + latex_image_filename
+
         if params.get('preview'):
             hashtags = set()
             for hashtag in data['hashtags']['value']:
@@ -562,37 +552,88 @@ def process_new_question(request):
                 'hashtags': ','.join(hashtags),
             }
             if image and not data['image']['errors']:
-                qi = QuestionImage(name='tmp_addition_question_image',
-                                   image=image,
-                                   created_at=datetime.datetime.now(datetime.timezone.utc))
-                qi.save()
-                data['preview_question']['addition_image_id'] = f'{qi.id}'
+                addition_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_{image.name}"
+                addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
+                with open(addition_image_pathname, 'wb+') as f:
+                    for chunk in image.chunks():
+                        f.write(chunk)
+                data['addition_image_url'] = settings.MEDIA_URL + addition_image_filename
         elif is_valid:
-            hashtags = set()
-            for hashtag in data['hashtags']['value']:
-                hashtag = hashtag.strip()
-                if hashtag:
-                    hashtags.add(hashtag)
+            if not image and params.get('using_old_image') and params.get('old_addition_image_url'):
+                if not params.get('old_addition_image_url', '').startswith(settings.MEDIA_URL):
+                    is_valid = False
+                    data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+                else:
+                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.MEDIA_URL):]
+                    pre_fix = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
+                    if len(addition_image_filename) <= len(pre_fix) or not addition_image_filename[23:].startswith(f"{request.user.code[1:]}addition_"):
+                        is_valid = False
+                        data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+                    else:
+                        pattern = re.compile(r'^tmp'
+                                             r'((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
+                                             r'((0[1-9])|(1[0-2]))'
+                                             r'((0[1-9])|([1-2][0-9])|(3[0-1]))'
+                                             r'(([0-1][0-9])|(2[0-3]))'
+                                             r'[0-5][0-9][0-5][0-9][0-9]{6}$')
+                        if not re.match(pattern=pattern, string=addition_image_filename[0:23]):
+                            is_valid = False
+                            data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+                        else:
+                            addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
+                            if not os.path.exists(addition_image_pathname):
+                                is_valid = False
+                                data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
 
-            q = Question(content=content,
-                         state='Pending',
-                         choices=choices,
-                         tag_id=tag_id,
-                         user_id=request.user.id,
-                         hashtags=','.join(hashtags),
-                         created_at=datetime.datetime.now(datetime.timezone.utc))
-            q.save()
-            qi = QuestionImage(name='addition_question_image',
-                               question_id=q.id,
-                               image=image,
-                               created_at=datetime.datetime.now(datetime.timezone.utc))
-            qi.save()
+            if is_valid:
+                hashtags = set()
+                for hashtag in data['hashtags']['value']:
+                    hashtag = hashtag.strip()
+                    if hashtag:
+                        hashtags.add(hashtag)
 
-            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
-            return redirect(to='practice:view_detail_question', question_id=q.id)
+                create_at = datetime.datetime.now(datetime.timezone.utc)
+                q = Question(content=content,
+                             state='Pending',
+                             choices=choices,
+                             tag_id=tag_id,
+                             user_id=request.user.id,
+                             hashtags=','.join(hashtags),
+                             created_at=create_at)
+                q.save()
 
-        if image and not data['image']['errors']:
-            data['image']['errors'].append('Lưu ý: Ảnh chưa được chọn, chọn ảnh nếu cần thiết.')
+                if latex_image_pathname:
+                    qi = QuestionImage(name='question_latex_image',
+                                       question_id=q.id,
+                                       created_at=create_at)
+                    with open(latex_image_pathname, 'rb') as f:
+                        data = File(f)
+                        qi.image.save('latex.png', data)
+                    qi.save()
+
+                if image:
+                    qi = QuestionImage(name='question_addition_image',
+                                       question_id=q.id,
+                                       image=image,
+                                       created_at=create_at)
+                    qi.save()
+                elif params.get('using_old_image') and params.get('old_addition_image_url'):
+                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.MEDIA_URL):]
+                    addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
+                    if os.path.exists(addition_image_pathname):
+                        qi = QuestionImage(name='question_addition_image',
+                                           question_id=q.id,
+                                           created_at=create_at)
+                        with open(addition_image_pathname, 'rb') as f:
+                            data = File(f)
+                            qi.image.save(addition_image_filename[(23 + len(f'{request.user.code[1:]}addition_')):], data)
+                        qi.save()
+
+                request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
+                return redirect(to='practice:view_detail_question', question_id=q.id)
+
+        if (image or (params.get('using_old_image') and params.get('old_addition_image_url'))) and not data['image']['errors']:
+            data['image']['errors'].append('Lưu ý: Chọn ảnh nếu cần thiết.')
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
         return redirect(to=f"{reverse('practice:process_new_question')}?data={data_in_params}")
@@ -759,6 +800,8 @@ def view_question(request, question_id, showing_comments: bool = False):
         "notification": notification,
         "question": question,
         "past_answers": past_answers,
+        "addition_image": question.get_addition_image(),
+        "latex_image": question.get_latex_image(),
     }
 
     if showing_comments:

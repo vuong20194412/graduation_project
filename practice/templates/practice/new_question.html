@@ -215,6 +215,11 @@
                         {% for error in data.image.errors %}
                             <p class="error" data-ref="id_image">{{error}}</p>
                         {% endfor %}
+                        {% if preview_question and addition_image_url %}
+                            <input type="hidden" name="old_addition_image_url" value="{{addition_image_url}}"/>
+                            <input type="checkbox" name="using_old_image" id="using_old_image" checked/>
+                            <label for="using_old_image">Dùng ảnh đã tải lên đang hiển thị trong phần xem trước nếu không chọn ảnh</label>
+                        {% endif %}
                     </div>
 
                     <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
@@ -235,9 +240,9 @@
 
                         <div class="row">
                             <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{preview_question.content}}</p>
-                            {% if preview_question.latex_image %}
+                            {% if latex_image_url %}
                                 <div class="row">
-                                    <img src="{{preview_question.latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                    <img src="{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                                 </div>
                             {% endif %}
                         </div>
@@ -253,15 +258,9 @@
                             </div>
                         {% endif %}
 
-                        {% if preview_question.addition_image %}
+                        {% if addition_image_url %}
                             <div class="row">
-                                <img src="{{preview_question.addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
-                            </div>
-                        {% endif %}
-
-                        {% if latex_image_url %}
-                            <div class="row">
-                                <img src="{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                <img src="{{addition_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                             </div>
                         {% endif %}
                     </div>

@@ -269,6 +269,11 @@
 
                     <div class="row">
                         <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{question.content}}</p>
+                        {% if latex_image %}
+                            <div class="row">
+                                <img src="{{latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            </div>
+                        {% endif %}
                     </div>
 
                     {% if question.choices %}
@@ -282,9 +287,9 @@
                     </div>
                     {% endif %}
 
-                    {% if question.image %}
+                    {% if addition_image %}
                     <div class="row">
-                        <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        <img src="{{addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                     </div>
                     {% endif %}
                 </div>
