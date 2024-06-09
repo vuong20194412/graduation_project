@@ -130,10 +130,17 @@ STATIC_URL = 'static/'
 
 MEDIA_ROOT = BASE_DIR / 'media_files'
 
+TMP_MEDIA_ROOT = MEDIA_ROOT / 'tmp'
+
 if not os.path.exists(MEDIA_ROOT):
     os.makedirs(MEDIA_ROOT)
 
+if not os.path.exists(TMP_MEDIA_ROOT):
+    os.makedirs(TMP_MEDIA_ROOT)
+
 MEDIA_URL = 'media/'
+
+TMP_MEDIA_URL = MEDIA_URL + 'tmp/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

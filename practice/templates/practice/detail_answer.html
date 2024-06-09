@@ -129,16 +129,22 @@
         </aside>
         <main style="height:fit-content;">
             <div class="in_main" autofocus>
-                <div class="row">
-                    <p style="max-width:calc(100% - 16px);word-break:break-word;"><strong>Câu hỏi:</strong> {{answer.question.content}}</p>
+                <div style="display:flex;gap:3px;padding:8px 8px 0 8px;">
+                    <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
+                    <div style="display:flex;gap:3px;">
+                        <p>{{answer.question.content}}</p>
+                        {% if question_latex_image %}
+                            <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        {% endif %}
+                    </div>
                 </div>
 
                 {% if answer.question.choices %}
                 <div class="row">
-                    <p>Các lựa chọn:</p>
-                    <ol>
+                    <p>&nbsp;&nbsp;Các lựa chọn:</p>
+                    <ol style="margin-top:3px;">
                         {% for choice in answer.question.choices %}
-                            <li>{{choice.content}}</li>
+                            <li style="word-break:break-word;">{{choice.content}}</li>
                         {% endfor %}
                     </ol>
                     {% if answer.choices|length > 1 %}
@@ -147,16 +153,16 @@
                         <p><strong>Lựa chọn đã chọn: </strong>Lựa chọn thứ {% for choice in answer.choices %}{% if forloop.counter0 %}, {% endif %}{{choice}}{% endfor %}</p>
                     {% endif %}
                     {% if answer.is_correct %}
-                        <p>Lựa chọn đã chọn <strong style="color:blue;">đúng</strong> so với đáp án của tác giá</p>
+                        <p>Kết quả trả lời&nbsp;<strong style="color:green;">đúng</strong>&nbsp;so với đáp án của tác giá</p>
                     {% else %}
-                        <p>Lựa chọn đã chọn <strong style="color:red;">sai</strong> so với đáp án của tác giả</p>
+                        <p>Kết quả trả lời&nbsp;<strong style="color:red;">sai</strong>&nbsp;so với đáp án của tác giả</p>
                     {% endif %}
                 </div>
                 {% endif %}
 
-                {% if answer.question.image %}
+                {% if question_addition_image %}
                     <div class="row">
-                        <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                     </div>
                 {% endif %}
             </div>

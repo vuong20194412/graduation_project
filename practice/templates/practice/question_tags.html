@@ -271,9 +271,9 @@
     <div id="content_tag">
         <main>
             <div class="in_main" autofocus>
-                <div>
+                <div style="padding:8px;">
                     <h2>Tạo thêm nhãn mới:</h2>
-                    <form style="box-sizing:border-box;width:100%;display:flex;flex-direction:column;padding:8px;gap:4px;" method="POST" title="Tạo thêm nhãn câu hỏi">
+                    <form style="box-sizing:border-box;width:100%;display:flex;flex-direction:column;padding:8px;gap:4px;margin-bottom:0;" method="POST" title="Tạo thêm nhãn câu hỏi">
                         {% csrf_token %}
                         <input type="hidden" name="limit" value="{{question_tag_conditions.limit}}"/>
                         <input type="hidden" name="offset" value="{{question_tag_conditions.page_offset}}"/>
@@ -295,7 +295,9 @@
                     </form>
                 </div>
 
-                <h2>Danh sách các nhãn:</h2>
+                <div style="padding:8px;">
+                    <h2>Danh sách các nhãn:</h2>
+                </div>
                 <div style="box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;height:48px;padding: 4px 8px;">
                     <div id="limit_question_tag" title="Chọn số nhãn trên mỗi trang">
                         <div style="height:100%;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">

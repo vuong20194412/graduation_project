@@ -267,19 +267,20 @@
                         </div>
                     {% endif %}
 
-                    <div class="row">
-                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{question.content}}</p>
-                        {% if latex_image %}
-                            <div class="row">
-                                <img src="{{latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
-                            </div>
-                        {% endif %}
+                    <div style="display:flex;gap:3px;">
+                        <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
+                        <div style="display:flex;gap:3px;">
+                            <p>{{question.content}}</p>
+                            {% if question_latex_image %}
+                                <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            {% endif %}
+                        </div>
                     </div>
 
                     {% if question.choices %}
                     <div class="row">
                         <p>&nbsp;&nbsp;Các lựa chọn:</p>
-                        <ol>
+                        <ol style="margin-top:3px;">
                             {% for choice in question.choices %}
                             <li style="word-break:break-word;">{{choice.content}}</li>
                             {% endfor %}
@@ -287,9 +288,9 @@
                     </div>
                     {% endif %}
 
-                    {% if addition_image %}
+                    {% if question_addition_image %}
                     <div class="row">
-                        <img src="{{addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                     </div>
                     {% endif %}
                 </div>

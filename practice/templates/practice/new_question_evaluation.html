@@ -132,19 +132,18 @@
                     <div id="id_previous_adjacent_link">
                         <a id="id__previous_adjacent_link" class="button" href="{% url 'practice:view_detail_question' question.id %}">Tới trang chi tiết câu hỏi</a>
                     </div>
-                    <div>
-                        <h2>Câu hỏi:</h2>
+                    <h2>Câu hỏi:</h2>
+                    <div style="display:flex;gap:3px;">
+                        <p>{{question.content}}</p>
+                        {% if question_latex_image %}
+                            <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        {% endif %}
                     </div>
-                    <div>
-                        Nội dung câu hỏi:
-                    </div>
-                    <div>
-                        <p style="padding-left:8px;word-break:break-word;">{{question.content}}</p>
-                    </div>
+
                     {% if question.choices %}
-                        <div class="row">
-                            <p>Các lựa chọn:</p>
-                            <ol>
+                    <div class="row">
+                        <p>&nbsp;&nbsp;Các lựa chọn:</p>
+                        <ol style="margin-top:3px;">
                                 {% for choice in question.choices %}
                                 <li style="word-break:break-word;">{{choice.content}}</li>
                                 {% endfor %}
@@ -152,9 +151,9 @@
                         </div>
                         {% endif %}
 
-                        {% if question.image %}
+                        {% if question_addition_image %}
                         <div class="row">
-                            <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                         </div>
                         {% endif %}
                     <div>

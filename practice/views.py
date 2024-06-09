@@ -109,11 +109,13 @@ def view_questions(request, path_name=None, filters=None):
 
     created_at_from = _filters_and_sorters['filter_by_created_at_from']
     if created_at_from:
-        filters.append(Q(created_at__gte=datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f')))
+        filters.append(
+            Q(created_at__gte=datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f')))
 
     created_at_to = _filters_and_sorters['filter_by_created_at_to']
     if created_at_to:
-        filters.append(Q(created_at__lte=datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f')))
+        filters.append(
+            Q(created_at__lte=datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f')))
 
     contents = _filters_and_sorters['filter_by_content']
     if contents:
@@ -155,7 +157,8 @@ def view_questions(request, path_name=None, filters=None):
 
     order_bys.append('created_at' if _filters_and_sorters['sorter_with_created_at'] == '+' else '-created_at')
 
-    questions = Question.objects.filter(*filters).alias(**k_alias).order_by(*order_bys).distinct()[offset:(offset + limit)]
+    questions = Question.objects.filter(*filters).alias(**k_alias).order_by(*order_bys).distinct()[
+                offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -176,8 +179,10 @@ def view_questions(request, path_name=None, filters=None):
             'filter_by_hashtag': _filters_and_sorters.get('filter_by_hashtag'),
             'filter_by_author_code': _filters_and_sorters.get('filter_by_author_code'),
             'sorter_with_created_at': _filters_and_sorters.get('sorter_with_created_at'),
-            'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get('sorter_with_decreasing_number_of_answers'),
-            'sorter_with_decreasing_number_of_comments': _filters_and_sorters.get('sorter_with_decreasing_number_of_comments'),
+            'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get(
+                'sorter_with_decreasing_number_of_answers'),
+            'sorter_with_decreasing_number_of_comments': _filters_and_sorters.get(
+                'sorter_with_decreasing_number_of_comments'),
         },
     }
 
@@ -324,11 +329,13 @@ def process_profile(request, profile_id):
             if len(email) > 255:
                 is_valid = False
                 data['email']['errors'].append('Trường này không được nhập quá 255 ký tự.')
-            pattern = re.compile(r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$')
+            pattern = re.compile(
+                r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$')
             if not re.match(pattern=pattern, string=email):
                 is_valid = False
                 data['email']['errors'].append('Email không đúng định dạng.')
-            elif get_user_model().objects.filter(email=get_user_model().objects.normalize_email(email)).exclude(id=profile.id):
+            elif get_user_model().objects.filter(email=get_user_model().objects.normalize_email(email)).exclude(
+                    id=profile.id):
                 is_valid = False
                 data['email']['errors'].append('Email đã được đăng ký với tài khoản khác.')
 
@@ -376,16 +383,17 @@ def process_new_question(request):
             'hashtags': {'errors': [], 'value': [], 'label': _('Các hashtag')},
             'content': {'errors': [], 'value': '', 'label': _('Nội dung câu hỏi')},
             'latex_content': {'errors': [], 'value': '', 'label': _('Bổ sung nội dung câu hỏi bằng latex')},
-            'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice], 'label': _('Các lựa chọn (tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng))')},
-            'image': {'errors': [], 'value': '', 'label': _('Hình ảnh (1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB)')},
+            'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice],
+                        'label': _('Các lựa chọn'), 'hint': _('tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng')},
+            'image': {'errors': [], 'value': '', 'label': _('Hình ảnh'),
+                      'hint': _('1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB')},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
 
         referer_url = request.META.get('HTTP_REFERER')
         if referer_url and referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))):
-            pattern = re.compile(r'\?tid=[0-9]+')
-            match = re.search(pattern=pattern, string=referer_url)
+            match = re.search(pattern=re.compile(r'\?tid=[0-9]+'), string=referer_url)
             if match:
                 tid = match.string[match.regs[0][0] + len('?tid='): match.regs[0][1]]
                 data['tag_id']['value'] = convert_to_non_negative_int(tid)
@@ -444,8 +452,13 @@ def process_new_question(request):
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
                 context['preview_question'] = data_in_params.get('preview_question')
-                context['addition_image_url'] = data_in_params.get('addition_image_url')
-                context['latex_image_url'] = data_in_params.get('latex_image_url')
+                addition_image_filename = data_in_params.get('addition_image_filename')
+
+                if addition_image_filename:
+                    context['addition_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + addition_image_filename
+                latex_image_filename = data_in_params.get('latex_image_filename')
+                if latex_image_filename:
+                    context['latex_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + latex_image_filename
             except (UnicodeDecodeError, ValueError):
                 pass
 
@@ -532,12 +545,18 @@ def process_new_question(request):
         latex_content = data['latex_content']['value'].strip()
         latex_image_pathname = ''
         if latex_content:
-            latex_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}latex.png"
-            latex_image_pathname = pathlib.Path(settings.MEDIA_ROOT, latex_image_filename)
+            latex_image_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}latex.png"
+            latex_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, latex_image_filename)
             with open(latex_image_pathname, 'wb+') as f:
                 pass
-            sympy.preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
-            data['latex_image_url'] = settings.MEDIA_URL + latex_image_filename
+            try:
+                sympy.preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
+                data['latex_image_filename'] = latex_image_filename
+            except Exception as e:
+                if str(e).startswith("'latex' exited abnormally with the following output:"):
+                    data['latex_content']['errors'].append('Nội dung latex không đúng cú pháp')
+                else:
+                    data['latex_content']['errors'].append('Có lỗi xảy ra, vui lòng thay đổi nội dung latex và thử lại')
 
         if params.get('preview'):
             hashtags = set()
@@ -552,38 +571,35 @@ def process_new_question(request):
                 'hashtags': ','.join(hashtags),
             }
             if image and not data['image']['errors']:
-                addition_image_filename = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_{image.name}"
-                addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
+                addition_image_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_{image.name}"
+                addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
                 with open(addition_image_pathname, 'wb+') as f:
                     for chunk in image.chunks():
                         f.write(chunk)
-                data['addition_image_url'] = settings.MEDIA_URL + addition_image_filename
+                data['addition_image_filename'] = addition_image_filename
         elif is_valid:
             if not image and params.get('using_old_image') and params.get('old_addition_image_url'):
-                if not params.get('old_addition_image_url', '').startswith(settings.MEDIA_URL):
+                if not params.get('old_addition_image_url', '').startswith(settings.TMP_MEDIA_URL):
                     is_valid = False
                     data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
                 else:
-                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.MEDIA_URL):]
-                    pre_fix = f"tmp{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
-                    if len(addition_image_filename) <= len(pre_fix) or not addition_image_filename[23:].startswith(f"{request.user.code[1:]}addition_"):
+                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
+                    # prefix = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
+                    exclude_datetime_prefix_filename = f"{request.user.code[1:]}addition_"
+                    if (len(addition_image_filename) <= 20 + len(exclude_datetime_prefix_filename)
+                            or not addition_image_filename[20:].startswith(exclude_datetime_prefix_filename)
+                            or not re.match(
+                                pattern=re.compile(r'^((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
+                                                   r'((0[1-9])|(1[0-2]))((0[1-9])|([1-2][0-9])|(3[0-1]))'
+                                                   r'(([0-1][0-9])|(2[0-3]))[0-5][0-9][0-5][0-9][0-9]{6}$'),
+                                string=addition_image_filename[0:20])):
                         is_valid = False
                         data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
                     else:
-                        pattern = re.compile(r'^tmp'
-                                             r'((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
-                                             r'((0[1-9])|(1[0-2]))'
-                                             r'((0[1-9])|([1-2][0-9])|(3[0-1]))'
-                                             r'(([0-1][0-9])|(2[0-3]))'
-                                             r'[0-5][0-9][0-5][0-9][0-9]{6}$')
-                        if not re.match(pattern=pattern, string=addition_image_filename[0:23]):
+                        addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
+                        if not os.path.exists(addition_image_pathname):
                             is_valid = False
                             data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
-                        else:
-                            addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
-                            if not os.path.exists(addition_image_pathname):
-                                is_valid = False
-                                data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
 
             if is_valid:
                 hashtags = set()
@@ -618,15 +634,16 @@ def process_new_question(request):
                                        created_at=create_at)
                     qi.save()
                 elif params.get('using_old_image') and params.get('old_addition_image_url'):
-                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.MEDIA_URL):]
-                    addition_image_pathname = pathlib.Path(settings.MEDIA_ROOT, addition_image_filename)
+                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
+                    addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
                     if os.path.exists(addition_image_pathname):
                         qi = QuestionImage(name='question_addition_image',
-                                           question_id=q.id,
                                            created_at=create_at)
                         with open(addition_image_pathname, 'rb') as f:
                             data = File(f)
-                            qi.image.save(addition_image_filename[(23 + len(f'{request.user.code[1:]}addition_')):], data)
+                            qi.image.save(addition_image_filename[(20 + len(f'{request.user.code[1:]}addition_')):],
+                                          data)
+                            qi.question_id = q.id
                         qi.save()
 
                 request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
@@ -683,6 +700,8 @@ def process_new_answer(request, question_id):
         context = {
             'question': question,
             'data': data,
+            "question_addition_image": question.get_addition_image(),
+            "question_latex_image": question.get_latex_image(),
         }
         return render(request, "practice/new_answer.html", context)
 
@@ -800,8 +819,8 @@ def view_question(request, question_id, showing_comments: bool = False):
         "notification": notification,
         "question": question,
         "past_answers": past_answers,
-        "addition_image": question.get_addition_image(),
-        "latex_image": question.get_latex_image(),
+        "question_addition_image": question.get_addition_image(),
+        "question_latex_image": question.get_latex_image(),
     }
 
     if showing_comments:
@@ -886,6 +905,8 @@ def view_detail_answer(request, answer_id):
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "answer": answer,
         "data": data,
+        "question_addition_image": answer.question.get_addition_image(),
+        "question_latex_image": answer.question.get_latex_image(),
     }
     return render(request, "practice/detail_answer.html", context)
 
@@ -925,10 +946,12 @@ def process_comments_in_question(request, question_id):
             )
             c.save()
 
-            return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset=1")
+            return redirect(
+                to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset=1")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+        return redirect(
+            to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -960,11 +983,13 @@ def process_new_question_evaluation(request, question_id):
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
                 if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
                     evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
-                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
+                    if evaluation_content_errors and isinstance(evaluation_content_errors,
+                                                                type(data['evaluation_content']['errors'])):
                         for evaluation_content_error in evaluation_content_errors:
                             data['evaluation_content']['errors'].append(_(evaluation_content_error))
                     evaluation_content_value = data_in_params['evaluation_content'].get('value')
-                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
+                    if evaluation_content_value and isinstance(evaluation_content_value,
+                                                               type(data['evaluation_content']['value'])):
                         data['evaluation_content']['value'] = evaluation_content_value
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
@@ -976,6 +1001,8 @@ def process_new_question_evaluation(request, question_id):
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
             "question": question,
             "data": data,
+            "question_addition_image": question.get_addition_image(),
+            "question_latex_image": question.get_latex_image(),
         }
         return render(request, "practice/new_question_evaluation.html", context)
 
@@ -1013,7 +1040,8 @@ def process_new_question_evaluation(request, question_id):
             return redirect(to="practice:view_detail_question", question_id=question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_new_question_evaluation', args=[question_id])}?data={data_in_params}")
+        return redirect(
+            to=f"{reverse('practice:process_new_question_evaluation', args=[question_id])}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -1045,11 +1073,13 @@ def process_new_comment_evaluation(request, comment_id):
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
                 if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
                     evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
-                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
+                    if evaluation_content_errors and isinstance(evaluation_content_errors,
+                                                                type(data['evaluation_content']['errors'])):
                         for evaluation_content_error in evaluation_content_errors:
                             data['evaluation_content']['errors'].append(_(evaluation_content_error))
                     evaluation_content_value = data_in_params['evaluation_content'].get('value')
-                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
+                    if evaluation_content_value and isinstance(evaluation_content_value,
+                                                               type(data['evaluation_content']['value'])):
                         data['evaluation_content']['value'] = evaluation_content_value
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
@@ -1095,11 +1125,13 @@ def process_new_comment_evaluation(request, comment_id):
             )
             ce.save()
 
-            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá bình luận thành công"
+            request.session[
+                notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá bình luận thành công"
             return redirect(to="practice:view_detail_question", question_id=comment.question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_new_comment_evaluation', args=[comment_id])}?data={data_in_params}")
+        return redirect(
+            to=f"{reverse('practice:process_new_comment_evaluation', args=[comment_id])}?data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()
@@ -1393,6 +1425,8 @@ def process_evaluation_by_admin(request, evaluation_id):
             "question": evaluation.question,
             "comment": evaluation.comment,
             "data": data,
+            "question_addition_image": evaluation.question.get_addition_image(),
+            "question_latex_image": evaluation.question.get_latex_image(),
         }
         return render(request, "practice/detail_evaluation.html", context)
 
@@ -1422,7 +1456,8 @@ def process_evaluation_by_admin(request, evaluation_id):
                 lg.save()
                 return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
-                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(
+                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
         elif params.get('action', '') == '2':
             if evaluation.state == 'Pending' and evaluation.comment and evaluation.comment.state != 'Locked':
                 c = evaluation.comment
@@ -1437,10 +1472,12 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn bình luận thành công"
+                request.session[
+                    notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn bình luận thành công"
                 return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
-                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(
+                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
         elif params.get('action', '') == '3':
             if evaluation.state == 'Pending' and not evaluation.comment and evaluation.question.state != 'Locked':
                 q = evaluation.question
@@ -1454,10 +1491,12 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn câu hỏi thành công"
+                request.session[
+                    notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn câu hỏi thành công"
                 return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
             else:
-                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(
+                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
         else:
             return OriginalHttpResponseBadRequest()
 
@@ -1570,6 +1609,8 @@ def process_comment_by_admin(request, comment_id):
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
             "comment": comment,
             "data": data,
+            "question_addition_image": comment.question.get_addition_image(),
+            "question_latex_image": comment.question.get_latex_image(),
         }
         return render(request, "practice/detail_comment.html", context)
 
@@ -1662,7 +1703,8 @@ def view_users_by_admin(request, path_name=None, filters=None):
     page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
     offset = (page_offset - 1) * limit
 
-    users = get_user_model().objects.filter(*filters).exclude(role='Admin').order_by('-updated_at')[offset:(offset + limit)]
+    users = get_user_model().objects.filter(*filters).exclude(role='Admin').order_by('-updated_at')[
+            offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -1732,7 +1774,8 @@ def process_user_by_admin(request, user_id):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            request.session[notification_to_process_profile_key_name] = "Thực hiện mở khoá tài khoản người dùng thành công"
+            request.session[
+                notification_to_process_profile_key_name] = "Thực hiện mở khoá tài khoản người dùng thành công"
             return redirect(to="practice:process_profile", profile_id=user_id)
         else:
             return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
@@ -1864,10 +1907,12 @@ def process_question_tags_by_admin(request):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
+            return redirect(
+                to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+        return redirect(
+            to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
         return OriginalHttpResponseBadRequest()

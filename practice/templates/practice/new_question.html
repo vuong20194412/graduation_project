@@ -183,6 +183,9 @@
 
                     <div class="row">
                         <label class="native" for="id_choices">{{data.choices.label}}:</label>
+                        {% if data.choices.hint %}
+                            <span style="word-break:break-word;">({{data.choices.hint}})</span>
+                        {% endif %}
                         <div id="id_choices" style="width:100%;padding:0 10px;display:flex;flex-direction:column;align-items:center;gap:4px;">
                             <div style="width:calc(100% - 20px);display:flex;align-items:center;">
                                 <div style="width:calc(100% - 130px);">Lựa chọn</div>
@@ -210,6 +213,9 @@
 
                     <div class="row">
                         <label class="native" for="id_image">{{data.image.label}}:</label>
+                        {% if data.image.hint %}
+                            <span style="word-break:break-word;">({{data.image.hint}})</span>
+                        {% endif %}
                         <input type="file" name="image" id="id_image" accept=".png, .jpg, .jpeg"
                                title="{{data.image.label}}" style="width:fit-content;min-width:200px;"/>
                         {% for error in data.image.errors %}
@@ -217,14 +223,16 @@
                         {% endfor %}
                         {% if preview_question and addition_image_url %}
                             <input type="hidden" name="old_addition_image_url" value="{{addition_image_url}}"/>
-                            <input type="checkbox" name="using_old_image" id="using_old_image" checked/>
-                            <label for="using_old_image">Dùng ảnh đã tải lên đang hiển thị trong phần xem trước nếu không chọn ảnh</label>
+                            <div style="display:flex;gap:3px;">
+                                <input type="checkbox" name="using_old_image" id="using_old_image" checked/>
+                                <label for="using_old_image">Dùng ảnh đã tải lên đang hiển thị trong phần xem trước nếu không chọn ảnh</label>
+                            </div>
                         {% endif %}
                     </div>
 
                     <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
                         <input type="submit" name="create" value="Tạo"/>
-                        <input type="submit" name="preview" value="Xem trước"/>
+                        <input type="submit" name="preview" value="&#9013 Xem trước"/>
                     </div>
                 </form>
                 {% if preview_question %}
@@ -238,19 +246,20 @@
                             </div>
                         {% endif %}
 
-                        <div class="row">
-                            <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{preview_question.content}}</p>
-                            {% if latex_image_url %}
-                                <div class="row">
+                        <div style="display:flex;gap:3px;">
+                            <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
+                            <div style="display:flex;gap:3px;">
+                                <p>{{preview_question.content}}</p>
+                                {% if latex_image_url %}
                                     <img src="{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
-                                </div>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
 
                         {% if preview_question.choices %}
                             <div class="row">
                                 <p>&nbsp;&nbsp;Các lựa chọn:</p>
-                                <ol>
+                                <ol style="margin-top:3px;">
                                     {% for choice in preview_question.choices %}
                                     <li style="word-break:break-word;">{{choice.content}}</li>
                                     {% endfor %}

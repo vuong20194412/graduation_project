@@ -49,7 +49,7 @@ def process_sign_up(request):
             'name': {'errors': [], 'value': '', 'label': _('Họ và tên')},
             'email': {'errors': [], 'value': '', 'label': _('Email')},
             'password': {'errors': [], 'value': '', 'label': _('Mật khẩu (tối thiểu 8 ký tự)')},
-            'repeated_password': {'errors': [], 'value': '', 'label': _('Nhập lại mật khẩu')},
+            'repeated_password': {'errors': [], 'value': '', 'label': _('Xác nhận mật khẩu')},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
@@ -115,10 +115,10 @@ def process_sign_up(request):
             data['password']['errors'].append('Trường này không được nhập ít hơn 8 ký tự.')
         elif not repeated_password:
             is_valid = False
-            data['repeated_password']['errors'].append('Trường này không được để trống.')
+            data['password']['errors'].append('Trường xác nhận mật khẩu không được để trống.')
         elif repeated_password != password:
             is_valid = False
-            data['repeated_password']['errors'].append('Hai trường mật khẩu không khớp.')
+            data['password']['errors'].append('Hai trường mật khẩu không khớp.')
 
         data['name']['value'] = params.get('name', '')
         name = data['name']['value'].strip()
@@ -259,7 +259,7 @@ def process_change_password(request):
         data = {
             'old_password': {'errors': [], 'value': '', 'label': _('Mật khẩu cũ')},
             'new_password': {'errors': [], 'value': '', 'label': _('Mật khẩu mới')},
-            'repeated_new_password': {'errors': [], 'value': '', 'label': _('Nhập lại mật khẩu mới')},
+            'repeated_new_password': {'errors': [], 'value': '', 'label': _('Xác nhận mật khẩu mới')},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
@@ -313,10 +313,10 @@ def process_change_password(request):
             data['new_password']['errors'].append('Trường này không được nhập ít hơn 8 ký tự.')
         elif not repeated_new_password:
             is_valid = False
-            data['repeated_new_password']['errors'].append('Trường này không được để trống.')
+            data['new_password']['errors'].append('Trường xác nhận mật khẩu mới không được để trống.')
         elif repeated_new_password != new_password:
             is_valid = False
-            data['repeated_new_password']['errors'].append('Hai trường mật khẩu mới không khớp.')
+            data['new_password']['errors'].append('Hai trường mật khẩu mới không khớp.')
 
         old_password = params.get('old_password')
         if not old_password:

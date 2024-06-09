@@ -124,43 +124,55 @@
                 <form method="POST">
                     {% csrf_token %}
                     <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
-                        <button type="submit">Lưu</button>
+                        <button type="submit">Lưu câu trả lời</button>
                     </div>
                     <div style="display:flex;flex-direction:column;border-top:1px solid #000000;padding: 8px;">
-                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Câu hỏi:</strong> {{question.content}}</p>
+                        <div style="display:flex;gap:3px;">
+                            <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
+                            <div style="display:flex;gap:3px;">
+                                <p>{{question.content}}</p>
+                                {% if question_latex_image %}
+                                    <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                {% endif %}
+                            </div>
+                        </div>
+
                         {% if question.choices %}
                         <div>
-                            <p>Các lựa chọn:</p>
-                            <ol>
+                            <p>&nbsp;&nbsp;Các lựa chọn:</p>
+                            <div style="margin-top:3px;display:flex;flex-direction:column;gap:3px;">
                                 {% if not question.is_single_choice %}
                                     {% for choice in question.choices %}
-                                        <li>
-                                            <input type="checkbox"
+                                        <div style="display:flex;gap:3px;">
+                                            &nbsp;&nbsp;&nbsp;
+                                            <input type="checkbox" style="margin-top:2px;"
                                                    name="choice_{{forloop.counter}}"
                                                    id="id_choice__{{forloop.counter}}"
                                                    value="{{forloop.counter}}"/>
                                             <label class="native" style="font-size:16px;word-break:break-word;" for="id_choice__{{forloop.counter}}">&nbsp;{{choice.content}}</label>
-                                        </li>
+                                        </div>
                                     {% endfor %}
                                 {% else %}
                                     {% for choice in question.choices %}
-                                        <li>
-                                            <input type="radio"
+                                        <div style="display:flex;gap:3px;">
+                                            &nbsp;&nbsp;&nbsp;
+                                            <input type="radio" style="margin-top:2px;"
                                                    name="choice"
                                                    id="id_choice_{{forloop.counter}}"
                                                    value="{{forloop.counter}}"/>
-                                            <label class="native" for="id_choice_{{forloop.counter}}">{{choice.content}}</label>
-                                        </li>
+                                            <label class="native" style="word-break:break-word;" for="id_choice_{{forloop.counter}}">{{choice.content}}</label>
+                                        </div>
                                     {% endfor %}
                                 {% endif %}
-                            </ol>
+                            </div>
                             {% for error in data.choices.errors %}
                                 <p class="error" data-ref="id_choices">{{error}}</p>
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% if question.image %}
-                            <img src="{{question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+
+                        {% if question_addition_image %}
+                            <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                         {% endif %}
                     </div>
                 </form>

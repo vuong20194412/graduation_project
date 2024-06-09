@@ -24,16 +24,16 @@ p:not(.native) {
     margin: 0;
     word-break: break-word;
 }
-p.error.apply {
+p.error.apply:not(.native) {
     color: var(--p-error-color);
 }
-p[data-ref]{
+p[data-ref]:not(.native){
     font-size: 11px;
 }
-label {
+label:not(.native) {
     font-size: 13px;
 }
-span {
+span:not(.native) {
     font-size: 11px;
 }
 @media only screen and (max-width:800px) {

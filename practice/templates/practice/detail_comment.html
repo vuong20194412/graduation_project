@@ -188,23 +188,31 @@
                             <p style="word-break:break-word;">{{comment.question.get_display_hashtags}}</p>
                         </div>
                     {% endif %}
+
                     <div style="display:flex;gap:3px;">
                         <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
-                        <p>{{comment.question.content}}</p>
+                        <div style="display:flex;gap:3px;">
+                            <p>{{question.content}}</p>
+                            {% if question_latex_image %}
+                                <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            {% endif %}
+                        </div>
                     </div>
+
                     {% if comment.question.choices %}
                     <div class="row">
-                        <strong>Các lựa chọn:</strong>
-                        <ol>
-                            {% for choice in comment.question.choices %}
-                            <li style="word-break:break-word">{{choice.content}}</li>
+                        <p>&nbsp;&nbsp;Các lựa chọn:</p>
+                        <ol style="margin-top:3px;">
+                            {% for choice in question.choices %}
+                            <li style="word-break:break-word;">{{choice.content}}</li>
                             {% endfor %}
                         </ol>
                     </div>
                     {% endif %}
-                    {% if comment.question.image %}
+
+                    {% if question_addition_image %}
                     <div class="row">
-                        <img src="{{comment.question.image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                        <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                     </div>
                     {% endif %}
                 </div>

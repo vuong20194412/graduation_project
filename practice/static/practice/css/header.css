@@ -164,6 +164,7 @@ header a {
 }
 #logout_dialog:target {
     display: flex;
+    z-index: 1;
 }
 #logout_dialog>form {
     box-sizing:border-box;
