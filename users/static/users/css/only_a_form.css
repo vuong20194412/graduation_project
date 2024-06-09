@@ -4,12 +4,14 @@
     --form-box-shadow: 0px 4px 4px 0px #B3B3B3;
     --p-error-color: #F5493D;
 }
+
 body {
     box-sizing: border-box;
     margin: 0;
     height: 100vh;
     width: 100%;
 }
+
 main {
     box-sizing: border-box;
     height: 100%;
@@ -19,6 +21,7 @@ main {
     align-items: center;
     background-color: var(--main);
 }
+
 form {
     box-sizing: border-box;
     /*width: 396px;*/
@@ -34,38 +37,53 @@ form {
     background-color: var(--form);
     box-shadow: var(--form-box-shadow);
 }
-h2, p {
+
+input {
+    min-width: 182px;
+}
+
+h2, p, label, span {
     font-family: none;
     font-family: Arial;
 }
+
 h2:not(.native) {
     box-sizing: border-box;
     margin: 0;
 }
+
 p:not(.native) {
     box-sizing: border-box;
     margin: 0;
-}
-input {
-    min-width: 182px;
-}
-p[data-ref].error {
     word-break: break-word;
+}
+
+p[data-ref]:not(.native){
+    font-size: 11px;
+}
+p[data-ref].error.apply:not(.native) {
+    color: var(--p-error-color);
+}
+p[data-ref].error:not(.native) {
     max-width: 182px;
     width: 100%;
 }
-p[data-ref].error.apply {
-    color: var(--p-error-color);
+
+label:not(.native) {
+    font-size: 13px;
 }
-p[data-ref]{
+
+span:not(.native) {
     font-size: 11px;
 }
+
 @media only screen and (max-width:800px) {
   /* For tablets and mobile phones: */
   #id_previous_adjacent_link, #id__previous_adjacent_link {
     display: none;
   }
 }
+
 @media only screen and (max-width:500px) {
   /* For mobile phones: */
   form {

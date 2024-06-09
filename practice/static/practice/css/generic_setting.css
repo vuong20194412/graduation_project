@@ -2,6 +2,7 @@
     --main: #E6FEF5;
     --p-error-color: #F5493D;
 }
+
 body {
     box-sizing: border-box;
     margin: 0;
@@ -15,27 +16,33 @@ h2, p, label, span {
     font-family: none;
     font-family: Arial;
 }
+
 h2:not(.native) {
     box-sizing: border-box;
     margin: 0;
 }
+
 p:not(.native) {
     box-sizing: border-box;
     margin: 0;
     word-break: break-word;
 }
-p.error.apply:not(.native) {
-    color: var(--p-error-color);
-}
+
 p[data-ref]:not(.native){
     font-size: 11px;
 }
+p.error.apply:not(.native) {
+    color: var(--p-error-color);
+}
+
 label:not(.native) {
     font-size: 13px;
 }
+
 span:not(.native) {
     font-size: 11px;
 }
+
 @media only screen and (max-width:800px) {
   /* For tablets and mobile phones: */
   #id_previous_adjacent_link, #id__previous_adjacent_link {

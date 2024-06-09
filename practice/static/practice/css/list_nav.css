@@ -1,3 +1,11 @@
+:root {
+    --nav-in_main_nav-a-border: 1px solid #000000;
+    --nav-in_main_nav-a: #E7F2FE;
+    --nav-in_main_nav-a-color: #000000;
+    --nav-in_main_nav-selected_a: #6CB0F9;
+    --nav-in_main_nav-selected_a-color: #FFFFFF;
+}
+
 nav.in_main_nav {
     box-sizing: border-box;
     width: fit-content;
@@ -15,34 +23,36 @@ nav.in_main_nav>a {
     width: 36px;
     min-width: 36px;
     flex: 0 0 36px;
-    border: 1px solid #000000;
+    border: var(--nav-in_main_nav-a-border);
     border-radius: 4px;
-    background-color: #E7F2FE;
+    background-color: var(--nav-in_main_nav-a);
     text-decoration: none;
-    color: #000000;
+    color: var(--nav-in_main_nav-a-color);
     display: inline-block;
     text-align: center;
     line-height: 34px;
 }
 nav.in_main_nav>a:visited {
-    color: #000000;
+    color: var(--nav-in_main_nav-a-color);
 }
+
 nav.in_main_nav>a.selected_a {
     border-width: 2px;
     line-height: 32px;
-    background-color: #6CB0F9;
-    color: #FFFFFF;
+    background-color: var(--nav-in_main_nav-selected_a);
+    color: var(--nav-in_main_nav-selected_a-color);
 }
 nav.in_main_nav>a:not(.selected_a):hover {
     border-width: 2px;
     line-height: 32px;
-    background-color: #6CB0F9;
+    background-color: var(--nav-in_main_nav-selected_a);
+    color: var(--nav-in_main_nav-selected_a-color);
     opacity: 0.8;
-    color: #FFFFFF;
 }
 nav.in_main_nav>a.selected_a:hover {
     opacity: 0.6;
 }
+
 nav.in_main_nav>form {
     box-sizing: border-box;
     width: fit-content;

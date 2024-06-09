@@ -109,13 +109,13 @@ def view_questions(request, path_name=None, filters=None):
 
     created_at_from = _filters_and_sorters['filter_by_created_at_from']
     if created_at_from:
-        filters.append(
-            Q(created_at__gte=datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f')))
+        created_at_from = datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=timezone.get_current_timezone())
+        filters.append(Q(created_at__gte=created_at_from))
 
     created_at_to = _filters_and_sorters['filter_by_created_at_to']
     if created_at_to:
-        filters.append(
-            Q(created_at__lte=datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f')))
+        created_at_to = datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=timezone.get_current_timezone())
+        filters.append(Q(created_at__lte=created_at_to))
 
     contents = _filters_and_sorters['filter_by_content']
     if contents:

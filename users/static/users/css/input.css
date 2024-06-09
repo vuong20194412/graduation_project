@@ -5,6 +5,8 @@
     --input-error-border-color: #F5493D;
     --input-focus-outline: 2px solid #04AE70;
     --checkbox: #E7F2FE;
+    --checkbox-border: 1px solid #000000;
+    --after-checkbox-border-color:  #000000;
     --checkbox-checked: #54A3F8;
     --radio-checked-outline: 2px solid #54A3F8;
     --radio-checked-border-color: #FFFFFF;
@@ -13,6 +15,7 @@ input, textarea, select {
     font-family: none;
     font-family: Arial;
 }
+
 input:not([type=checkbox]):not([type=radio]) {
     box-sizing: border-box;
     height: 40px;
@@ -39,13 +42,13 @@ input:not([type=checkbox]):not([type=radio]):focus {
     border: 0;
     outline: var(--input-focus-outline);
 }
+
 /* Chrome, Safari, Edge, Opera */
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-
 /* Firefox */
 input[type=number] {
   -moz-appearance: textfield;
@@ -60,15 +63,13 @@ input[type=checkbox] {
     height: 16px;
     width: 16px;
     min-width: 16px;
-    border: 1px solid #000000;
+    border: var(--checkbox-border);
     border-radius: 2px;
     margin: 0;
 }
-
 input[type=checkbox]:checked {
   background-color: var(--checkbox-checked);
 }
-
 input[type=checkbox]:after {
   box-sizing: border-box;
   content: '';
@@ -79,11 +80,10 @@ input[type=checkbox]:after {
   height: 80%;
   border-style: solid;
   border-width: 0 2px 2px 0;
-  border-color: #000000;
+  border-color: var(--after-checkbox-border-color);
   background-color: var(--checkbox-checked);
   transform: rotate(45deg);
 }
-
 input[type=checkbox]:checked:after {
   display: block;
 }
@@ -100,17 +100,15 @@ input[type=radio] {
     height: 16px;
     width: 16px;
     min-width: 16px;
-    border: 1px solid #000000;
+    border: var(--checkbox-border);
     border-radius: 16px;
     margin: 0;
 }
-
 input[type=radio]:checked {
   background-color: var(--checkbox-checked);
   border-color: var(--radio-checked-border-color);
   outline: var(--radio-checked-outline);
 }
-
 input[type=radio]:after {
   box-sizing: border-box;
   content: '';
@@ -121,11 +119,10 @@ input[type=radio]:after {
   height: 80%;
   border-style: solid;
   border-width: 0 2px 2px 0;
-  border-color: #000000;
+  border-color: var(--after-checkbox-border-color);
   background-color: var(--checkbox-checked);
   transform: rotate(45deg);
 }
-
 input[type=radio]:checked:after {
   display: block;
 }

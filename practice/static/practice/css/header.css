@@ -1,3 +1,15 @@
+:root {
+    --header: #FFFFFF;
+    --header-box-shadow: 0px 4px 4px 0px #B3B3B3;
+    --header_div_user-a-border: 1px solid #000000;
+    --header_div_user-a-color: #000000;
+    --header_nav-a-border-color: #E7F2FE;
+    --header_nav-a-color: #000000;
+    --header_nav-selected_a: #E7F2FE;
+    --logout_dialog: #B3B3B3B3;
+    --logout_dialog-form: #FFFFFF;
+}
+
 /* header */
 header {
     box-sizing: border-box;
@@ -7,13 +19,15 @@ header {
     align-items: center;
     display: grid;
     grid-template-columns: 18.75% 62.5% 18.75%;
-    box-shadow: 0px 4px 4px 0px #B3B3B3;
-    background-color: #FFFFFF;
+    box-shadow: var(--header-box-shadow);
+    background-color: var(--header);
 }
+
 header a {
     font-family: none;
     font-family: Arial;
 }
+
 #id_header_div_user {
     box-sizing:border-box;
     height:100%;
@@ -32,18 +46,18 @@ header a {
     height: 40px;
     padding: 0 8px;
     line-height: 38px;
-    border: 1px solid #000000;
+    border: var(--header_div_user-a-border);
     border-radius: 6px;
     max-width: 100%;
     min-width: 80px;
-    color: #000000;
+    color: var(--header_div_user-a-color);
     text-decoration: none;
     text-wrap: nowrap;
     display: inline-flex;
     flex-direction: row-reverse;
 }
 #div_user>a:visited {
-    color: #000000;
+    color: var(--header_div_user-a-color);
 }
 
 #id_header_nav {
@@ -64,13 +78,13 @@ header a {
     height: 48px;
     line-height: 48px;
     text-align: center;
-    border-color: #E7F2FE;
+    border-color: var(--header_nav-a-border-color);
     border-top-width: 0px;
     border-bottom-width: 0px;
     border-left-width: 1px;
     border-right-width: 1px;
     border-style: solid;
-    color: #000000;
+    color: var(--header_nav-a-color);
     font-weight: bold;
     font-size: 13px;
 }
@@ -84,11 +98,11 @@ header a {
     text-decoration: none;
 }
 #id_header_nav>a.selected_a {
-    background-color: #E7F2FE;
+    background-color: var(--header_nav-selected_a);
 }
 #id_header_nav>a:not(.selected_a):hover {
     opacity: 0.8;
-    background-color: #E7F2FE;
+    background-color: var(--header_nav-selected_a);
 }
 #id_header_nav>a.selected_a:hover {
     opacity: 0.6;
@@ -103,12 +117,14 @@ header a {
     gap: 8px;
     justify-content: flex-end;
 }
+
 @media only screen and (max-width:800px) {
   /* For tablets: */
   header {
     height: 48px;
   }
 }
+
 @media only screen and (max-width:600px) {
   /* For mobile phones: */
   header {
@@ -158,7 +174,7 @@ header a {
     width: 100vw;
     height: 100vh;
     border: 0;
-    background-color: #b3b3b3b3;
+    background-color: var(--logout_dialog);
     justify-content: center;
     align-items: center;
 }
@@ -167,17 +183,18 @@ header a {
     z-index: 1;
 }
 #logout_dialog>form {
-    box-sizing:border-box;
+    box-sizing: border-box;
     border-radius: 8px;
     padding: 24px 49px;
     gap: 24px;
-    background-color: #FFFFFF;
+    background-color: var(--logout_dialog-form);
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 /* end button logout css */
 /* end header */
+
 #id_nav {
     box-sizing: border-box;
     width: 100%;
@@ -185,10 +202,16 @@ header a {
     padding: 0;
     display: flex;
     align-items: center;
-    box-shadow: 0px 4px 4px 0px #B3B3B3;
-    background-color: #FFFFFF;
+    box-shadow: var(--header-box-shadow);
+    background-color: var(--header);
     overflow-x: auto;
 }
+
+#id_nav a {
+    font-family: none;
+    font-family: Arial;
+}
+
 #id_nav>nav {
     box-sizing: border-box;
     height: 100%;
@@ -201,13 +224,13 @@ header a {
     height: 48px;
     line-height: 48px;
     text-align: center;
-    border-color: #E7F2FE;
+    border-color: var(--header_nav-a-border-color);
     border-top-width: 0px;
     border-bottom-width: 0px;
     border-left-width: 1px;
     border-right-width: 1px;
     border-style: solid;
-    color: #000000;
+    color: var(--header_nav-a-color);
     font-weight: bold;
     font-size: 13px;
 }
@@ -221,11 +244,11 @@ header a {
     text-decoration: none;
 }
 #id_nav>nav>a.selected_a {
-    background-color: #E7F2FE;
+    background-color: var(--header_nav-selected_a);
 }
 #id_nav>nav>a:not(.selected_a):hover {
     opacity: 0.8;
-    background-color: #E7F2FE;
+    background-color: var(--header_nav-selected_a);
 }
 #id_nav>nav>a.selected_a:hover {
     opacity: 0.6;
