@@ -42,20 +42,18 @@
                 <div style="width:100%;">
                     <p><strong>{{data.email.label}}: </strong>{{data.email.value}}</p>
                 </div>
-                {% if user.role == 'Admin' and profile_role != 'Admin' %}
-                    <div>
-                            {% csrf_token %}
-                            {% if not profile_locked %}
-                                <input type="hidden" name="lock" value="on">
-                                <button type="submit">Khóa</button>
-                            {% else %}
-                                <input type="hidden" name="unlock" value="on">
-                                <button type="submit">Mở khóa</button>
-                            {% endif %}
-                    </div>
-                {% endif %}
-                <div>
-                    <p id="id__previous_adjacent_link" style="position:absolute;top:0;right:-124px;width:75px;">
+                <div style="position:relative;">
+                    {% if user.role == 'Admin' and profile_role != 'Admin' %}
+                        {% csrf_token %}
+                        {% if not profile_locked %}
+                            <input type="hidden" name="lock" value="on">
+                            <button type="submit">Khóa</button>
+                        {% else %}
+                            <input type="hidden" name="unlock" value="on">
+                            <button type="submit">Mở khóa</button>
+                        {% endif %}
+                    {% endif %}
+                    <p id="id__previous_adjacent_link" style="{% if user.role == 'Admin' and profile_role != 'Admin' %}position:absolute;top:0;right:-124px;width:75px;{% endif %}">
                         {% if data.previous_adjacent_url %}
                             <a href="{{data.previous_adjacent_url}}">Tới trang trước</a>
                         {% endif %}
@@ -119,14 +117,6 @@
         </form>
         {% endif %}
     </main>
-
-    {% if is_reload %}
-        <script>
-            document.addEventListener("DOMContentLoaded", (event) => {
-                history.back();
-            });
-        </script>
-    {% endif %}
 
     {% if not data.readonly %}
         <script src="{% static 'users\js\input.js' %}"></script>
