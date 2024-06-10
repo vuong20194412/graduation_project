@@ -183,6 +183,9 @@
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
                         <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' comment.question.user.id %}" style="text-decoration:none;">{{comment.question.user.code}}</a></p>
                     </div>
+                    <div class="row">
+                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Nhãn câu hỏi:</strong>{{comment.question.tag}}</p>
+                    </div>
                     {% if comment.question.get_display_hashtags %}
                         <div class="row">
                             <p style="word-break:break-word;">{{comment.question.get_display_hashtags}}</p>

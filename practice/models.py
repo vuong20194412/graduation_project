@@ -1,10 +1,7 @@
-import datetime
-import random
-
-from django.db import models, connections
-from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
-from django.db.models import QuerySet
+from django.db import models
+from django.db.models import Max, F, Q, Subquery
+from django.utils.translation import gettext_lazy as _
 
 
 # def explain(self):
@@ -14,7 +11,7 @@ from django.db.models import QuerySet
 #     return '\n'.join(r[0] for r in cursor.fetchall())
 
 
-#type.__setattr__(QuerySet, 'explain', explain)
+# type.__setattr__(QuerySet, 'explain', explain)
 
 
 # Create your models here.
@@ -25,20 +22,20 @@ class QuestionTag(models.Model):
 
 
 class Question(models.Model):
+    content = models.TextField(_('nội dung câu hỏi'), default='', )
     STATE_CHOICES = (
         ('Pending', _('Chờ duyệt')),
         ('Unapproved', _('Không được duyệt')),
         ('Approved', _('Đã duyệt')),
         ('Locked', _('Đã ẩn'))
     )
-    content = models.TextField(_('nội dung câu hỏi'), default='')
     state = models.CharField(verbose_name=_('trạng thái câu hỏi'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # [{'content': text, 'is_true': bool}]
     choices = models.JSONField(verbose_name=_('các lựa chọn'), default=list, )
 
     tag = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=QuestionTag, on_delete=models.RESTRICT, )
     user = models.ForeignKey(verbose_name=_('người tạo'), to=get_user_model(), on_delete=models.CASCADE, )
-    hashtags = models.TextField(verbose_name=_('các hashtag'), default='')
+    hashtags = models.TextField(verbose_name=_('các hashtag'), default='', )
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('thời điểm tạo'), )
 
@@ -71,15 +68,28 @@ class Question(models.Model):
 
     def get_addition_image(self):
         if self.id:
-            image = QuestionImage.objects.filter(question_id=self.id, name='question_addition_image')
-            if image:
-                return image[0].image
+            qi = QuestionImage.objects.filter(question_id=self.id, name='question_addition_image')
+            if qi:
+                return qi[0].image
         return None
+
+    def get_rating(self):
+        user_ids = QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False).values_list('user_id', flat=True).distinct()
+        latest_evaluation_ids = [
+            Subquery(QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at').annotate(latest=Max('created_at')).order_by('-latest').values_list('id', flat=True)) for user_id in user_ids
+        ]
+        qes = QuestionEvaluation.objects.filter(id__in=latest_evaluation_ids)
+        if qes:
+            sum_start = 0
+            for qe in qes:
+                sum_start += qe.question_rating
+            return sum_start / len(qes), len(qes)
+        return 0, 0
 
 
 class QuestionImage(models.Model):
-    name = models.CharField(_('tên mục đích ảnh'), max_length=255)
-    question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, null=False)
+    name = models.CharField(_('tên mục đích ảnh'), max_length=255, )
+    question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, )
 
     def upload_to(self, filename):
         question = self.question
@@ -97,47 +107,77 @@ class QuestionImage(models.Model):
 
 class Answer(models.Model):
     # [int, int, ...] lưu số thứ tự của các lựa chọn được chọn
-    choices = models.JSONField(verbose_name=_('Các lựa chọn'), default=list)
-    is_correct = models.BooleanField(verbose_name=_('Đúng không?'), default=False)
-    question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
-    user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
+    choices = models.JSONField(verbose_name=_('các lựa chọn'), default=list, )
+    is_correct = models.BooleanField(verbose_name=_('đúng không?'), default=False, )
+    question = models.ForeignKey(verbose_name=_('câu hỏi'), to=Question, on_delete=models.CASCADE, )
+    user = models.ForeignKey(verbose_name=_('người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
-    created_at = models.DateTimeField(_('Thời điểm tạo'), )
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
 
     objects = models.Manager()
 
 
 class Comment(models.Model):
+    content = models.TextField(verbose_name=_('nội dung'), default='', )
     STATE_CHOICES = (
         ('Normal', _('Bình thường')),
         ('Locked', _('Đã ẩn'))
     )
-    content = models.TextField(verbose_name=_('Nội dung'), default='')
-    state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
-    question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
-    user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
+    state = models.CharField(verbose_name=_('trạng thái'), max_length=255, choices=STATE_CHOICES, default='Normal', )
+    question = models.ForeignKey(verbose_name=_('câu hỏi'), to=Question, on_delete=models.CASCADE, )
+    user = models.ForeignKey(verbose_name=_('người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
     # datetime.datetime.now(datetime.timezone.utc)
-    created_at = models.DateTimeField(_('Thời điểm tạo'), )
-    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), )
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
+    updated_at = models.DateTimeField(_('thời điểm cập nhật gần nhất'), )
 
     objects = models.Manager()
 
 
-class Evaluation(models.Model):
-    question = models.ForeignKey(verbose_name=_('Câu hỏi'), to=Question, on_delete=models.CASCADE, )
-    comment = models.ForeignKey(verbose_name=_('Bình luận'), to=Comment, on_delete=models.CASCADE, null=True)
-    user = models.ForeignKey(verbose_name=_('Người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
-    content = models.TextField(verbose_name=_('Nội dung đánh giá'), default='')
+class QuestionEvaluation(models.Model):
+    question = models.ForeignKey(verbose_name=_('câu hỏi'), to=Question, on_delete=models.CASCADE, )
+    QUESTION_RATING_CHOICES = (
+        (1, _('1 sao')),
+        (2, _('2 sao')),
+        (3, _('3 sao')),
+        (4, _('4 sao')),
+        (5, _('5 sao'))
+    )
+    question_rating = models.IntegerField(verbose_name=_('số sao cho câu hỏi'), choices=QUESTION_RATING_CHOICES, null=True, )
+    user = models.ForeignKey(verbose_name=_('người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
+    content = models.TextField(verbose_name=_('nội dung đánh giá'), default='', )
     STATE_CHOICES = (
         ('Pending', _('Chở xử lý')),
         ('Locked', _('Đã xử lý'))
     )
-    state = models.CharField(verbose_name=_('Trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
+    state = models.CharField(verbose_name=_('trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
     # datetime.datetime.now(datetime.timezone.utc)
-    created_at = models.DateTimeField(_('Thời điểm tạo'), )
-    updated_at = models.DateTimeField(_('Thời điểm cập nhật gần nhất'), )
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
+    updated_at = models.DateTimeField(_('thời điểm cập nhật gần nhất'), )
 
     objects = models.Manager()
 
-#thêm công thức toán học
-#lỗi hiển thị sai trên danh sach cau hỏi
+
+class CommentEvaluation(models.Model):
+    comment = models.ForeignKey(verbose_name=_('bình luận'), to=Comment, on_delete=models.CASCADE, )
+    user = models.ForeignKey(verbose_name=_('người dùng'), to=get_user_model(), on_delete=models.CASCADE, )
+    content = models.TextField(verbose_name=_('nội dung đánh giá'), default='', )
+    STATE_CHOICES = (
+        ('Pending', _('Chở xử lý')),
+        ('Locked', _('Đã xử lý'))
+    )
+    state = models.CharField(verbose_name=_('trạng thái'), max_length=255, choices=STATE_CHOICES, default='Pending', )
+    # datetime.datetime.now(datetime.timezone.utc)
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
+    updated_at = models.DateTimeField(_('thời điểm cập nhật gần nhất'), )
+
+    objects = models.Manager()
+
+
+class Log(models.Model):
+    model_name = models.CharField(verbose_name=_('tên lớp đối tượng'), max_length=255, )
+    object_id = models.IntegerField(verbose_name=_('id đối tượng'), )
+    user_id = models.IntegerField(verbose_name=_('id người thực hiện'), )
+    content = models.TextField(verbose_name=_('nội dung thay đổi'), default='', )
+    created_at = models.DateTimeField(_('thời điểm tạo'), )
+
+    objects = models.Manager()

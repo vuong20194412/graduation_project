@@ -1,36 +1,32 @@
 import datetime
 import json
+import math
 import os
 import pathlib
 import re
-from math import ceil as math_ceil
-import sympy
-from io import BytesIO
-from django.core.files.uploadedfile import InMemoryUploadedFile
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
-from django.db.models import Count, Q
-from django.http import HttpResponseBadRequest as OriginalHttpResponseBadRequest, HttpResponseNotFound, Http404
-from django.shortcuts import redirect
-from django.shortcuts import render
+from django.core.files import File
+from django.db.models import Q, Count
+from django.http import HttpResponseBadRequest as _HttpResponseBadRequest, HttpResponseNotFound, HttpResponseNotAllowed
+from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils.translation import gettext_lazy as _
-from django.conf import settings
-from django.core.files import File
-from users.models import Log
+from django.views.decorators.http import require_http_methods
+from sympy import preview as sympy_preview
 from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 
-from .models import QuestionTag, Question, Answer, Comment, Evaluation, QuestionImage
+from .models import QuestionTag, Question, Answer, Comment, QuestionImage, Log, QuestionEvaluation, CommentEvaluation
 
 
-class HttpResponseBadRequest(OriginalHttpResponseBadRequest):
-    def __init__(self, content=b"", *args, **kwargs):
+class HttpResponseBadRequest(_HttpResponseBadRequest):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Content is a bytestring. See the `content` property methods.
-        self.content = _('<h1>Lỗi đã xảy ra, vui lòng quay lại và tải lại trang<h1>')
+        self.content = _('<h1>Lỗi đã xảy ra, vui lòng quay lại và tải lại.<h1>')
 
 
 def convert_to_int(string: str, default: int = 0):
@@ -41,22 +37,23 @@ def convert_to_non_negative_int(string: str, default: int = 0):
     return int(string) if re.match(string=string, pattern=re.compile('^[0-9]+$')) else default
 
 
-def get_page_offset(offset_in_params: str, page_count: int):
+def get_limit_offset_count(session, limit_in_params: str, limit_key_name: str, offset_in_params: str, records_count: int):
+    limit = convert_to_non_negative_int(string=limit_in_params, default=0)
+    if limit_key_name:
+        if not limit:
+            limit = session.get(limit_key_name, 4)
+        elif limit != session.get(limit_key_name, 0):
+            session[limit_key_name] = limit
+
+    page_count = math.ceil(records_count / limit) or 1
+
     page_offset = convert_to_int(string=offset_in_params, default=1)
     if page_offset > 1:
         page_offset = page_offset if page_offset < page_count else page_count
     else:
         page_offset = page_count if page_offset == -1 else 1
-    return page_offset
 
-
-def get_limit_for_list(session, limit_in_params: str, limit_key_name: str):
-    limit = convert_to_non_negative_int(string=limit_in_params, default=0)
-    if not limit:
-        limit = session.get(limit_key_name, 4)
-    elif limit != session.get(limit_key_name, 0):
-        session[limit_key_name] = limit
-    return limit
+    return limit, page_offset, page_count, (page_offset - 1) * limit
 
 
 # Create your views here.
@@ -68,6 +65,19 @@ notification_to_process_evaluation_by_admin_key_name = 'practice.views.profile_k
 def view_questions(request, path_name=None, filters=None):
     params = request.GET
     filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
+
+    filters = filters or []
+
+    tag_id = convert_to_int(string=params.get('tid', ''), default=-1)
+    tag_name = ''
+    tags = QuestionTag.objects.all()
+    if tag_id != -1:
+        tag = tags.filter(id=tag_id)
+        if tag:
+            filters.append(Q(tag_id=tag_id))
+            tag_name = tag[0].name
+        else:
+            tag_id = -1
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
@@ -92,73 +102,58 @@ def view_questions(request, path_name=None, filters=None):
             'sorter_with_decreasing_number_of_comments': False,
         }
 
-    filters = filters or []
-
-    tag_id = convert_to_int(string=params.get('tid', ''), default=0)
-    tag_name = ''
-    tags = QuestionTag.objects.all()
-    if tag_id != -1:
-        tag = tags.filter(id=tag_id)
-        if tag:
-            filters.append(Q(tag_id=tag_id))
-            tag_name = tag[0].name
-        else:
-            tag_id = -1
-
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
 
-    created_at_from = _filters_and_sorters['filter_by_created_at_from']
+    created_at_from = _filters_and_sorters.get('filter_by_created_at_from', '')
     if created_at_from:
         created_at_from = datetime.datetime.strptime(created_at_from + ':00.000000', '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=timezone.get_current_timezone())
         filters.append(Q(created_at__gte=created_at_from))
 
-    created_at_to = _filters_and_sorters['filter_by_created_at_to']
+    created_at_to = _filters_and_sorters.get('filter_by_created_at_to', '')
     if created_at_to:
         created_at_to = datetime.datetime.strptime(created_at_to + ':59.999999', '%Y-%m-%dT%H:%M:%S.%f').replace(tzinfo=timezone.get_current_timezone())
         filters.append(Q(created_at__lte=created_at_to))
 
-    contents = _filters_and_sorters['filter_by_content']
+    contents = _filters_and_sorters.get('filter_by_content', '')
     if contents:
         contents = [content.strip() for content in contents.split(',') if content.strip()]
         if contents:
             filters.append(Q(content__iregex=r"^.*" + ('|'.join(contents)) + r".*$"))
 
-    hashtags = _filters_and_sorters['filter_by_hashtag']
+    hashtags = _filters_and_sorters.get('filter_by_hashtag', '')
     if hashtags:
         hashtags = [hashtag.strip() for hashtag in hashtags.split(',') if hashtag.strip()]
         if hashtags:
             filters.append(Q(hashtags__iregex=r"^.*" + ('|'.join(hashtags)) + r".*$"))
 
-    author_codes = _filters_and_sorters['filter_by_author_code']
+    author_codes = _filters_and_sorters.get('filter_by_author_code', '')
     if author_codes:
         author_codes = [author_code.strip() for author_code in author_codes.split(',') if author_code.strip()]
         if author_codes:
             filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
-    limit = get_limit_for_list(
+    limit, page_offset, page_count, offset = get_limit_offset_count(
         session=request.session,
         limit_in_params=params.get('limit', ''),
-        limit_key_name='practice.views.view_questions__limit'
+        limit_key_name='practice.views.view_questions__limit',
+        offset_in_params=params.get('offset', ''),
+        records_count=Question.objects.filter(*filters).distinct().count(),
     )
-    page_count = math_ceil(Question.objects.filter(*filters).distinct().count() / limit) or 1
-    page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-    offset = (page_offset - 1) * limit
 
     order_bys = []
     k_alias = {}
 
-    if _filters_and_sorters['sorter_with_decreasing_number_of_comments']:
+    if _filters_and_sorters.get('sorter_with_decreasing_number_of_comments'):
         k_alias['comment__count'] = Count('comment')
         order_bys.append('-comment__count')
 
-    if _filters_and_sorters['sorter_with_decreasing_number_of_answers']:
+    if _filters_and_sorters.get('sorter_with_decreasing_number_of_answers'):
         k_alias['answer__count'] = Count('answer')
         order_bys.append('-answer__count')
 
-    order_bys.append('created_at' if _filters_and_sorters['sorter_with_created_at'] == '+' else '-created_at')
+    order_bys.append('created_at' if _filters_and_sorters.get('sorter_with_created_at', '') == '+' else '-created_at')
 
-    questions = Question.objects.filter(*filters).alias(**k_alias).order_by(*order_bys).distinct()[
-                offset:(offset + limit)]
+    questions = Question.objects.filter(*filters).alias(**k_alias).order_by(*order_bys).distinct()[offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -173,16 +168,14 @@ def view_questions(request, path_name=None, filters=None):
             "tag_name": tag_name,
             "limit": limit,
             "page_offset": page_offset,
-            'filter_by_created_at_from': _filters_and_sorters.get('filter_by_created_at_from'),
-            'filter_by_created_at_to': _filters_and_sorters.get('filter_by_created_at_to'),
-            'filter_by_content': _filters_and_sorters.get('filter_by_content'),
-            'filter_by_hashtag': _filters_and_sorters.get('filter_by_hashtag'),
-            'filter_by_author_code': _filters_and_sorters.get('filter_by_author_code'),
-            'sorter_with_created_at': _filters_and_sorters.get('sorter_with_created_at'),
-            'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get(
-                'sorter_with_decreasing_number_of_answers'),
-            'sorter_with_decreasing_number_of_comments': _filters_and_sorters.get(
-                'sorter_with_decreasing_number_of_comments'),
+            'filter_by_created_at_from': _filters_and_sorters.get('filter_by_created_at_from', ''),
+            'filter_by_created_at_to': _filters_and_sorters.get('filter_by_created_at_to', ''),
+            'filter_by_content': _filters_and_sorters.get('filter_by_content', ''),
+            'filter_by_hashtag': _filters_and_sorters.get('filter_by_hashtag', ''),
+            'filter_by_author_code': _filters_and_sorters.get('filter_by_author_code', ''),
+            'sorter_with_created_at': _filters_and_sorters.get('sorter_with_created_at', ''),
+            'sorter_with_decreasing_number_of_answers': _filters_and_sorters.get('sorter_with_decreasing_number_of_answers', False),
+            'sorter_with_decreasing_number_of_comments': _filters_and_sorters.get('sorter_with_decreasing_number_of_comments', False),
         },
     }
 
@@ -190,46 +183,26 @@ def view_questions(request, path_name=None, filters=None):
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_created_questions(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_created_questions',
-        filters=[Q(user_id=request.user.id)],
-    )
+    return view_questions(request, path_name='practice:view_created_questions', filters=[Q(user_id=request.user.id)])
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_answered_questions(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_answered_questions',
-        filters=[Q(answer__user_id=request.user.id), Q(state='Approved')]
-    )
+    return view_questions(request, path_name='practice:view_answered_questions', filters=[Q(answer__user_id=request.user.id), Q(state='Approved')])
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_unanswered_questions(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_unanswered_questions',
-        filters=[~Q(answer__user_id=request.user.id), Q(state='Approved')]
-    )
+    return view_questions(request, path_name='practice:view_unanswered_questions', filters=[~Q(answer__user_id=request.user.id), Q(state='Approved')])
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_root(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
     if request.user.role != 'Admin':
         return redirect("practice:view_unanswered_questions")
     else:
@@ -239,6 +212,14 @@ def view_root(request):
 @ensure_is_not_anonymous_user
 def process_profile(request, profile_id):
     if request.method == 'GET':
+        params = request.GET
+
+        http_code = params.get('http_code')
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
         notification = request.session.get(notification_to_process_profile_key_name, '')
         if notification:
             notification = _(notification)
@@ -248,14 +229,6 @@ def process_profile(request, profile_id):
         if not profile:
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
         profile = profile[0]
-
-        params = request.GET
-
-        http_code = params.get('http_code')
-        if http_code == '400':
-            return HttpResponseBadRequest()
-        elif http_code == '404':
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
 
         data = {
             'name': {'errors': [], 'value': profile.name, 'label': _('Họ và tên')},
@@ -270,6 +243,7 @@ def process_profile(request, profile_id):
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+
                 if 'name' in data_in_params and isinstance(data_in_params['name'], dict):
                     name_errors = data_in_params['name'].get('errors')
                     if name_errors and isinstance(name_errors, type(data['name']['errors'])):
@@ -278,6 +252,7 @@ def process_profile(request, profile_id):
                     name_value = data_in_params['name'].get('value')
                     if name_value and isinstance(name_value, type(data['name']['value'])):
                         data['name']['value'] = name_value
+
                 if 'email' in data_in_params and isinstance(data_in_params['email'], dict):
                     email_errors = data_in_params['email'].get('errors')
                     if email_errors and isinstance(email_errors, type(data['email']['errors'])):
@@ -286,9 +261,11 @@ def process_profile(request, profile_id):
                     email_value = data_in_params['email'].get('value')
                     if email_value and isinstance(email_value, type(data['email']['value'])):
                         data['email']['value'] = email_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
@@ -329,13 +306,11 @@ def process_profile(request, profile_id):
             if len(email) > 255:
                 is_valid = False
                 data['email']['errors'].append('Trường này không được nhập quá 255 ký tự.')
-            pattern = re.compile(
-                r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$')
-            if not re.match(pattern=pattern, string=email):
+
+            if not re.match(pattern=re.compile(r'^[^@\[\]<>(),:;.\s\\\"]+(\.[^@\[\]<>(),:;.\s\\\"]+)*@([^@\[\]<>(),:;.\s\\\"]+\.)+[^@\[\]<>(),:;.\s\\\"]{2,}$'), string=email):
                 is_valid = False
                 data['email']['errors'].append('Email không đúng định dạng.')
-            elif get_user_model().objects.filter(email=get_user_model().objects.normalize_email(email)).exclude(
-                    id=profile.id):
+            elif get_user_model().objects.filter(email=get_user_model().objects.normalize_email(email)).exclude(id=profile.id):
                 is_valid = False
                 data['email']['errors'].append('Email đã được đăng ký với tài khoản khác.')
 
@@ -371,7 +346,7 @@ def process_profile(request, profile_id):
         return redirect(to=f"{reverse('practice:process_profile', args=[profile_id])}?data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @ensure_is_not_anonymous_user
@@ -399,11 +374,12 @@ def process_new_question(request):
                 data['tag_id']['value'] = convert_to_non_negative_int(tid)
 
         params = request.GET
-        data_in_params = params.get('data')
+
         context = {
             'tags': QuestionTag.objects.all(),
-            'data': data,
         }
+
+        data_in_params = params.get('data')
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
@@ -415,10 +391,12 @@ def process_new_question(request):
                     tag_id_value = data_in_params['tag_id'].get('value')
                     if tag_id_value and isinstance(tag_id_value, type(data['tag_id']['value'])):
                         data['tag_id']['value'] = tag_id_value
+
                 if 'hashtags' in data_in_params and isinstance(data_in_params['hashtags'], dict):
                     hashtags_value = data_in_params['hashtags'].get('value')
                     if hashtags_value and isinstance(hashtags_value, type(data['hashtags']['value'])):
                         data['hashtags']['value'] = hashtags_value
+
                 if 'content' in data_in_params and isinstance(data_in_params['content'], dict):
                     content_errors = data_in_params['content'].get('errors')
                     if content_errors and isinstance(content_errors, type(data['content']['errors'])):
@@ -427,6 +405,7 @@ def process_new_question(request):
                     content_value = data_in_params['content'].get('value')
                     if content_value and isinstance(content_value, type(data['content']['value'])):
                         data['content']['value'] = content_value
+
                 if 'latex_content' in data_in_params and isinstance(data_in_params['latex_content'], dict):
                     latex_content_errors = data_in_params['latex_content'].get('errors')
                     if latex_content_errors and isinstance(latex_content_errors, type(data['latex_content']['errors'])):
@@ -435,6 +414,7 @@ def process_new_question(request):
                     latex_content_value = data_in_params['latex_content'].get('value')
                     if latex_content_value and isinstance(latex_content_value, type(data['latex_content']['value'])):
                         data['latex_content']['value'] = latex_content_value
+
                 if 'choices' in data_in_params and isinstance(data_in_params['choices'], dict):
                     choices_errors = data_in_params['choices'].get('errors')
                     if choices_errors and isinstance(choices_errors, type(data['choices']['errors'])):
@@ -443,25 +423,31 @@ def process_new_question(request):
                     choices_value = data_in_params['choices'].get('value')
                     if choices_value and isinstance(choices_value, type(data['choices']['value'])):
                         data['choices']['value'] = choices_value
+
                 if 'image' in data_in_params and isinstance(data_in_params['image'], dict):
                     image_errors = data_in_params['image'].get('errors')
                     if image_errors and isinstance(image_errors, type(data['image']['errors'])):
                         for image_error in image_errors:
                             data['image']['errors'].append(_(image_error))
                 data_errors = data_in_params.get('errors')
+
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
-                context['preview_question'] = data_in_params.get('preview_question')
-                addition_image_filename = data_in_params.get('addition_image_filename')
 
+                context['preview_question'] = data_in_params.get('preview_question')
+
+                addition_image_filename = data_in_params.get('addition_image_filename')
                 if addition_image_filename:
                     context['addition_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + addition_image_filename
+
                 latex_image_filename = data_in_params.get('latex_image_filename')
                 if latex_image_filename:
                     context['latex_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + latex_image_filename
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
+        context['data'] = data
         return render(request, "practice/new_question.html", context)
 
     elif request.method == 'POST':
@@ -477,7 +463,6 @@ def process_new_question(request):
         }
 
         is_valid = True
-        params = request.POST
 
         image = request.FILES.get('image')
         if image:
@@ -490,6 +475,8 @@ def process_new_question(request):
             elif image.size >= limit_image_file_size:
                 is_valid = False
                 data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
+
+        params = request.POST
 
         choices = []
         choice_order = 1
@@ -547,10 +534,10 @@ def process_new_question(request):
         if latex_content:
             latex_image_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}latex.png"
             latex_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, latex_image_filename)
-            with open(latex_image_pathname, 'wb+') as f:
+            with open(latex_image_pathname, 'wb+'):
                 pass
             try:
-                sympy.preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
+                sympy_preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
                 data['latex_image_filename'] = latex_image_filename
             except Exception as e:
                 if str(e).startswith("'latex' exited abnormally with the following output:"):
@@ -577,6 +564,7 @@ def process_new_question(request):
                     for chunk in image.chunks():
                         f.write(chunk)
                 data['addition_image_filename'] = addition_image_filename
+
         elif is_valid:
             if not image and params.get('using_old_image') and params.get('old_addition_image_url'):
                 if not params.get('old_addition_image_url', '').startswith(settings.TMP_MEDIA_URL):
@@ -584,7 +572,7 @@ def process_new_question(request):
                     data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
                 else:
                     addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
-                    # prefix = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
+                    # prefix = f"{datetime.datetime.now(datetime.timezone.utc). strf time('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
                     exclude_datetime_prefix_filename = f"{request.user.code[1:]}addition_"
                     if (len(addition_image_filename) <= 20 + len(exclude_datetime_prefix_filename)
                             or not addition_image_filename[20:].startswith(exclude_datetime_prefix_filename)
@@ -656,22 +644,22 @@ def process_new_question(request):
         return redirect(to=f"{reverse('practice:process_new_question')}?data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @ensure_is_not_anonymous_user
 def process_new_answer(request, question_id):
     if request.method == 'GET':
-        question = Question.objects.filter(id=question_id, state='Approved')
-        if not question:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        question = question[0]
-
         params = request.GET
 
         http_code = params.get('http_code')
         if http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        question = question[0]
 
         data = {
             'choices': {'value': [], 'errors': [], 'label': _('Lựa chọn')},
@@ -683,6 +671,7 @@ def process_new_answer(request, question_id):
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+
                 if 'choices' in data_in_params and isinstance(data_in_params['choices'], dict):
                     choices_errors = data_in_params['choices'].get('errors')
                     if choices_errors and isinstance(choices_errors, type(data['choices']['errors'])):
@@ -691,9 +680,11 @@ def process_new_answer(request, question_id):
                     choices_value = data_in_params['choices'].get('value')
                     if choices_value and isinstance(choices_value, type(data['choices']['value'])):
                         data['choices']['value'] = choices_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
@@ -778,10 +769,19 @@ def process_new_answer(request, question_id):
         return redirect(to=f"{reverse('practice:process_new_answer', args=[question_id])}?data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 def view_question(request, question_id, showing_comments: bool = False):
+    params = request.GET
+
+    http_code = params.get('http_code')
+    if http_code:
+        if http_code == '400':
+            return HttpResponseBadRequest()
+        elif http_code == '404':
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
     notification = request.session.get(notification_to_view_detail_question_key_name, '')
     if notification:
         notification = _(notification)
@@ -799,25 +799,20 @@ def view_question(request, question_id, showing_comments: bool = False):
         return HttpResponseNotFound(_('<h1>Not Found</h1>'))
     question = question[0]
 
-    params = request.GET
-
-    http_code = params.get('http_code')
-    if http_code:
-        if http_code == '400':
-            return HttpResponseBadRequest()
-        elif http_code == '404':
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-
     past_answers = Answer.objects.filter(user_id=request.user.id, question_id=question_id)
 
     data = {
         'previous_adjacent_url': set_prev_adj_url(request),
     }
 
+    question_rating, question_evaluation_count = question.get_rating()
+
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
         "notification": notification,
         "question": question,
+        "question_rating": '{:.2f}'.format(question_rating) if question_rating else '',
+        "question_evaluation_count": question_evaluation_count,
         "past_answers": past_answers,
         "question_addition_image": question.get_addition_image(),
         "question_latex_image": question.get_latex_image(),
@@ -833,32 +828,32 @@ def view_question(request, question_id, showing_comments: bool = False):
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+
                 if 'comment_content' in data_in_params and isinstance(data_in_params['comment_content'], dict):
                     comment_content_errors = data_in_params['comment_content'].get('errors')
-                    if comment_content_errors and isinstance(comment_content_errors,
-                                                             type(data['comment_content']['errors'])):
+                    if comment_content_errors and isinstance(comment_content_errors, type(data['comment_content']['errors'])):
                         for comment_content_error in comment_content_errors:
                             data['comment_content']['errors'].append(_(comment_content_error))
                     comment_content_value = data_in_params['comment_content'].get('value')
-                    if comment_content_value and isinstance(comment_content_value,
-                                                            type(data['comment_content']['value'])):
+                    if comment_content_value and isinstance(comment_content_value, type(data['comment_content']['value'])):
                         data['comment_content']['value'] = comment_content_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
-        limit = get_limit_for_list(
+        limit, page_offset, page_count, offset = get_limit_offset_count(
             session=request.session,
             limit_in_params=params.get('limit', ''),
-            limit_key_name='practice.views.get_comments_in_question__limit'
+            limit_key_name='practice.views.get_comments_in_question__limit',
+            offset_in_params=params.get('offset', ''),
+            records_count=question.comment_set.distinct().count()
         )
-        page_count = math_ceil(question.comment_set.count() / limit) or 1
-        page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-        offset = (page_offset - 1) * limit
 
-        comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at')[offset:(offset + limit)]
+        comments = question.comment_set.filter(~Q(state='Locked')).order_by('-created_at').distinct()[offset:(offset + limit)]
 
         context.update({
             "showing_comments": True,
@@ -877,18 +872,14 @@ def view_question(request, question_id, showing_comments: bool = False):
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_detail_question(request, question_id):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
     return view_question(request, question_id)
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['GET'])
 def view_detail_answer(request, answer_id):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
     if request.user.role != 'Admin':
         answer = Answer.objects.filter(id=answer_id)
         if not answer:
@@ -946,33 +937,32 @@ def process_comments_in_question(request, question_id):
             )
             c.save()
 
-            return redirect(
-                to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset=1")
+            return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset=1")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(
-            to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_comments_in_question', args=[question_id])}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @ensure_is_not_anonymous_user
 def process_new_question_evaluation(request, question_id):
     if request.method == 'GET':
-        question = Question.objects.filter(id=question_id, state='Approved')
-        if not question:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        question = question[0]
-
         params = request.GET
 
         http_code = params.get('http_code')
         if http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
 
+        question = Question.objects.filter(id=question_id, state='Approved')
+        if not question:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        question = question[0]
+
         data = {
             'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
+            'question_rating': {'errors': [], 'value': '', 'label': _('Bình chọn số sao câu hỏi')},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
@@ -981,19 +971,29 @@ def process_new_question_evaluation(request, question_id):
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+
                 if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
                     evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
-                    if evaluation_content_errors and isinstance(evaluation_content_errors,
-                                                                type(data['evaluation_content']['errors'])):
+                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
                         for evaluation_content_error in evaluation_content_errors:
                             data['evaluation_content']['errors'].append(_(evaluation_content_error))
                     evaluation_content_value = data_in_params['evaluation_content'].get('value')
-                    if evaluation_content_value and isinstance(evaluation_content_value,
-                                                               type(data['evaluation_content']['value'])):
+                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
                         data['evaluation_content']['value'] = evaluation_content_value
+
+                if 'question_rating' in data_in_params and isinstance(data_in_params['question_rating'], dict):
+                    question_rating_errors = data_in_params['question_rating'].get('errors')
+                    if question_rating_errors and isinstance(question_rating_errors, type(data['question_rating']['errors'])):
+                        for question_rating_error in question_rating_errors:
+                            data['question_rating']['errors'].append(_(question_rating_error))
+                    question_rating_value = data_in_params['question_rating'].get('value')
+                    if question_rating_value and isinstance(question_rating_value, type(data['question_rating']['value'])):
+                        data['question_rating']['value'] = question_rating_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
@@ -1001,6 +1001,7 @@ def process_new_question_evaluation(request, question_id):
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
             "question": question,
             "data": data,
+            "question_rating_range": ['1', '2', '3', '4', '5'],
             "question_addition_image": question.get_addition_image(),
             "question_latex_image": question.get_latex_image(),
         }
@@ -1014,6 +1015,7 @@ def process_new_question_evaluation(request, question_id):
 
         data = {
             'evaluation_content': {'errors': [], 'value': ''},
+            'question_rating': {'errors': [], 'value': ''},
             'errors': [],
         }
 
@@ -1022,44 +1024,46 @@ def process_new_question_evaluation(request, question_id):
 
         data['evaluation_content']['value'] = params.get('evaluation_content', '')
         evaluation_content = data['evaluation_content']['value'].strip()
-        if not evaluation_content:
-            is_valid = False
-            data['evaluation_content']['errors'].append('Đánh giá phải có thể đọc.')
+
+        data['question_rating']['value'] = params.get('question_rating', '')
+        question_rating = convert_to_int(string=data['question_rating']['value'].strip())
 
         if is_valid:
-            qe = Evaluation(
+            qe = QuestionEvaluation(
                 content=evaluation_content,
                 question_id=question.id,
                 user_id=request.user.id,
                 created_at=datetime.datetime.now(datetime.timezone.utc),
                 updated_at=datetime.datetime.now(datetime.timezone.utc),
             )
+            if question_rating and question_rating in [1, 2, 3, 4, 5]:
+                qe.question_rating = question_rating
+
             qe.save()
 
             request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá câu hỏi thành công"
             return redirect(to="practice:view_detail_question", question_id=question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(
-            to=f"{reverse('practice:process_new_question_evaluation', args=[question_id])}?data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_new_question_evaluation', args=[question_id])}?data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @ensure_is_not_anonymous_user
 def process_new_comment_evaluation(request, comment_id):
     if request.method == 'GET':
-        comment = Comment.objects.filter(id=comment_id, state='Normal')
-        if not comment:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        comment = comment[0]
-
         params = request.GET
 
         http_code = params.get('http_code')
         if http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        comment = Comment.objects.filter(id=comment_id, state='Normal')
+        if not comment:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        comment = comment[0]
 
         data = {
             'evaluation_content': {'errors': [], 'value': '', 'label': _('Đánh giá mới')},
@@ -1071,19 +1075,20 @@ def process_new_comment_evaluation(request, comment_id):
         if data_in_params:
             try:
                 data_in_params = json.loads(urlsafe_base64_decode(data_in_params).decode('utf-8'))
+
                 if 'evaluation_content' in data_in_params and isinstance(data_in_params['evaluation_content'], dict):
                     evaluation_content_errors = data_in_params['evaluation_content'].get('errors')
-                    if evaluation_content_errors and isinstance(evaluation_content_errors,
-                                                                type(data['evaluation_content']['errors'])):
+                    if evaluation_content_errors and isinstance(evaluation_content_errors, type(data['evaluation_content']['errors'])):
                         for evaluation_content_error in evaluation_content_errors:
                             data['evaluation_content']['errors'].append(_(evaluation_content_error))
                     evaluation_content_value = data_in_params['evaluation_content'].get('value')
-                    if evaluation_content_value and isinstance(evaluation_content_value,
-                                                               type(data['evaluation_content']['value'])):
+                    if evaluation_content_value and isinstance(evaluation_content_value, type(data['evaluation_content']['value'])):
                         data['evaluation_content']['value'] = evaluation_content_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
@@ -1115,9 +1120,8 @@ def process_new_comment_evaluation(request, comment_id):
             data['evaluation_content']['errors'].append('Đánh giá phải có thể đọc.')
 
         if is_valid:
-            ce = Evaluation(
+            ce = CommentEvaluation(
                 content=evaluation_content,
-                question_id=comment.question.id,
                 comment_id=comment.id,
                 user_id=request.user.id,
                 created_at=datetime.datetime.now(datetime.timezone.utc),
@@ -1125,72 +1129,44 @@ def process_new_comment_evaluation(request, comment_id):
             )
             ce.save()
 
-            request.session[
-                notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá bình luận thành công"
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo đánh giá bình luận thành công"
             return redirect(to="practice:view_detail_question", question_id=comment.question.id)
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(
-            to=f"{reverse('practice:process_new_comment_evaluation', args=[comment_id])}?data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_new_comment_evaluation', args=[comment_id])}?data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 # ========================================== Admin ====================================================
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_pending_questions_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_pending_questions_by_admin',
-        filters=[Q(state='Pending')]
-    )
+    return view_questions(request, path_name='practice:view_pending_questions_by_admin', filters=[Q(state='Pending')])
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_locked_questions_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_locked_questions_by_admin',
-        filters=[Q(state='Locked')]
-    )
+    return view_questions(request, path_name='practice:view_locked_questions_by_admin', filters=[Q(state='Locked')])
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_unapproved_questions_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_unapproved_questions_by_admin',
-        filters=[Q(state='Unapproved')]
-    )
+    return view_questions(request, path_name='practice:view_unapproved_questions_by_admin', filters=[Q(state='Unapproved')])
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_approved_questions_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_questions(
-        request=request,
-        path_name='practice:view_approved_questions_by_admin',
-        filters=[Q(state='Approved')]
-    )
+    return view_questions(request, path_name='practice:view_approved_questions_by_admin', filters=[Q(state='Approved')])
 
 
 @ensure_is_admin
+@require_http_methods(['POST'])
 def process_question_by_admin(request, question_id):
-    if request.method != 'POST':
-        return OriginalHttpResponseBadRequest()
-
     question = Question.objects.filter(id=question_id)
     if not question:
         return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=404")
@@ -1284,15 +1260,14 @@ def process_question_by_admin(request, question_id):
         else:
             return redirect(to=f"{reverse('practice:view_detail_question', args=[question_id])}?http_code=400")
     else:
-        return OriginalHttpResponseBadRequest()
+        return _HttpResponseBadRequest()
 
 
-def view_evaluations_by_admin(request, path_name=None, filters=None):
+def view_evaluations_by_admin(request, path_name=None, filters=None, evaluation_type='question'):
     params = request.GET
+    filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
 
     filters = filters or []
-
-    filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
@@ -1319,16 +1294,26 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
         if author_codes:
             filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
-    limit = get_limit_for_list(
-        session=request.session,
-        limit_in_params=params.get('limit', ''),
-        limit_key_name='practice.views.view_evaluations_by_admin__limit'
-    )
-    page_count = math_ceil(Evaluation.objects.filter(*filters).count() / limit) or 1
-    page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-    offset = (page_offset - 1) * limit
+    if evaluation_type == 'comment':
+        limit, page_offset, page_count, offset = get_limit_offset_count(
+            session=request.session,
+            limit_in_params=params.get('limit', ''),
+            limit_key_name='practice.views.view_evaluations_by_admin__limit',
+            offset_in_params=params.get('offset', ''),
+            records_count=CommentEvaluation.objects.filter(*filters).distinct().count()
+        )
 
-    evaluations = Evaluation.objects.filter(*filters).order_by('-updated_at')[offset:(offset + limit)]
+        evaluations = CommentEvaluation.objects.filter(*filters).order_by('-updated_at').distinct()[offset:(offset + limit)]
+    else:
+        limit, page_offset, page_count, offset = get_limit_offset_count(
+            session=request.session,
+            limit_in_params=params.get('limit', ''),
+            limit_key_name='practice.views.view_evaluations_by_admin__limit',
+            offset_in_params=params.get('offset', ''),
+            records_count=QuestionEvaluation.objects.filter(*filters).exclude(content='').distinct().count()
+        )
+
+        evaluations = QuestionEvaluation.objects.filter(*filters).order_by('-updated_at').exclude(content='').distinct()[offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -1337,6 +1322,7 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
             "page_range": range(1, page_count + 1),
             "limits": [4, 8, 16],
             "path_name": path_name,
+            "type": evaluation_type,
             "limit": limit,
             "include_limit_exclude_offset_url": f"{reverse(path_name)}?limit={limit}",
             "page_offset": page_offset,
@@ -1347,72 +1333,61 @@ def view_evaluations_by_admin(request, path_name=None, filters=None):
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_unlocked_question_evaluations_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_evaluations_by_admin(
-        request=request,
-        path_name='practice:view_unlocked_question_evaluations_by_admin',
-        filters=[~Q(state='Locked'), Q(comment__isnull=True)]
-    )
+    return view_evaluations_by_admin(request, path_name='practice:view_unlocked_question_evaluations_by_admin', filters=[~Q(state='Locked')], evaluation_type='question')
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_unlocked_comment_evaluations_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_evaluations_by_admin(
-        request=request,
-        path_name='practice:view_unlocked_comment_evaluations_by_admin',
-        filters=[~Q(state='Locked'), Q(comment__isnull=False)]
-    )
+    return view_evaluations_by_admin(request, path_name='practice:view_unlocked_comment_evaluations_by_admin', filters=[~Q(state='Locked')], evaluation_type='comment')
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_locked_question_evaluations_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_evaluations_by_admin(
-        request=request,
-        path_name='practice:view_locked_question_evaluations_by_admin',
-        filters=[Q(state='Locked'), Q(comment__isnull=True)]
-    )
+    return view_evaluations_by_admin(request, path_name='practice:view_locked_question_evaluations_by_admin', filters=[Q(state='Locked')], evaluation_type='question')
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_locked_comment_evaluations_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_evaluations_by_admin(
-        request=request,
-        path_name='practice:view_locked_comment_evaluations_by_admin',
-        filters=[Q(state='Locked'), Q(comment__isnull=False)]
-    )
+    return view_evaluations_by_admin(request, path_name='practice:view_locked_comment_evaluations_by_admin', filters=[Q(state='Locked')], evaluation_type='comment')
 
 
 @ensure_is_admin
 def process_evaluation_by_admin(request, evaluation_id):
     if request.method == 'GET':
-        notification = request.session.get(notification_to_process_evaluation_by_admin_key_name, '')
-        if notification:
-            notification = _(notification)
-            request.session[notification_to_process_evaluation_by_admin_key_name] = ''
-
-        evaluation = Evaluation.objects.filter(id=evaluation_id)
-        if not evaluation:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        evaluation = evaluation[0]
-
         params = request.GET
+
         http_code = params.get('http_code')
         if http_code == '400':
             return HttpResponseBadRequest()
         elif http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        notification = request.session.get(notification_to_process_evaluation_by_admin_key_name, '')
+        if notification:
+            notification = _(notification)
+            request.session[notification_to_process_evaluation_by_admin_key_name] = ''
+
+        question = None
+        comment = None
+        evaluation_type = params.get('type', 'question')
+        if evaluation_type == 'comment':
+            evaluation = CommentEvaluation.objects.filter(id=evaluation_id)
+            if not evaluation:
+                return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+            evaluation = evaluation[0]
+            comment = evaluation.comment
+            question = comment.question
+        else:
+            evaluation = QuestionEvaluation.objects.filter(id=evaluation_id).exclude(content='')
+            if not evaluation:
+                return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+            evaluation = evaluation[0]
+            question = evaluation.question
 
         data = {
             'previous_adjacent_url': set_prev_adj_url(request),
@@ -1422,19 +1397,29 @@ def process_evaluation_by_admin(request, evaluation_id):
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
             "notification": notification,
             "evaluation": evaluation,
-            "question": evaluation.question,
-            "comment": evaluation.comment,
+            "question": question,
+            "comment": comment,
+            "type": evaluation_type,
             "data": data,
-            "question_addition_image": evaluation.question.get_addition_image(),
-            "question_latex_image": evaluation.question.get_latex_image(),
+            "question_addition_image": question.get_addition_image(),
+            "question_latex_image": question.get_latex_image(),
         }
         return render(request, "practice/detail_evaluation.html", context)
 
     elif request.method == 'POST':
-        evaluation = Evaluation.objects.filter(id=evaluation_id)
-        if not evaluation:
-            return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=404")
-        evaluation = evaluation[0]
+        params = request.POST
+
+        evaluation_type = params.get('type', 'question')
+        if evaluation_type == 'comment':
+            evaluation = CommentEvaluation.objects.filter(id=evaluation_id)
+            if not evaluation:
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}&http_code=404")
+            evaluation = evaluation[0]
+        else:
+            evaluation = QuestionEvaluation.objects.filter(id=evaluation_id).exclude(content='')
+            if not evaluation:
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}&http_code=404")
+            evaluation = evaluation[0]
 
         params = request.POST
 
@@ -1454,12 +1439,11 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}")
             else:
-                return redirect(
-                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}&http_code=400")
         elif params.get('action', '') == '2':
-            if evaluation.state == 'Pending' and evaluation.comment and evaluation.comment.state != 'Locked':
+            if evaluation_type == 'comment' and evaluation.state == 'Pending' and evaluation.comment and evaluation.comment.state != 'Locked':
                 c = evaluation.comment
                 c.state = 'Locked'
                 c.updated_at = datetime.datetime.now(datetime.timezone.utc)
@@ -1472,14 +1456,12 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[
-                    notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn bình luận thành công"
-                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
+                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn bình luận thành công"
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}")
             else:
-                return redirect(
-                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}&http_code=400")
         elif params.get('action', '') == '3':
-            if evaluation.state == 'Pending' and not evaluation.comment and evaluation.question.state != 'Locked':
+            if evaluation_type == 'question' and evaluation.state == 'Pending' and evaluation.question and evaluation.question.state != 'Locked':
                 q = evaluation.question
                 q.state = 'Locked'
                 q.save()
@@ -1491,22 +1473,22 @@ def process_evaluation_by_admin(request, evaluation_id):
                     created_at=datetime.datetime.now(datetime.timezone.utc)
                 )
                 lg.save()
-                request.session[
-                    notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn câu hỏi thành công"
-                return redirect(to='practice:process_evaluation_by_admin', evaluation_id=evaluation_id)
+                request.session[notification_to_process_evaluation_by_admin_key_name] = "Thực hiện ẩn câu hỏi thành công"
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}")
             else:
-                return redirect(
-                    to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?http_code=400")
+                return redirect(to=f"{reverse('practice:process_evaluation_by_admin', args=[evaluation_id])}?type={evaluation_type}&http_code=400")
         else:
-            return OriginalHttpResponseBadRequest()
+            return _HttpResponseBadRequest()
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 def view_comments_by_admin(request, path_name=None, filters=None):
     params = request.GET
     filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
+
+    filters = filters or []
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
@@ -1523,7 +1505,6 @@ def view_comments_by_admin(request, path_name=None, filters=None):
     filter_by_content = _filters_and_sorters['filter_by_content']
     filter_by_author_code = _filters_and_sorters['filter_by_author_code']
 
-    filters = filters or []
     if filter_by_content:
         contents = [content.strip() for content in filter_by_content.split(',') if content.strip()]
         if contents:
@@ -1534,16 +1515,15 @@ def view_comments_by_admin(request, path_name=None, filters=None):
         if author_codes:
             filters.append(Q(user__code__iregex=r"^.*" + ('|'.join(author_codes)) + r".*$"))
 
-    limit = get_limit_for_list(
+    limit, page_offset, page_count, offset = get_limit_offset_count(
         session=request.session,
         limit_in_params=params.get('limit', ''),
-        limit_key_name='practice.views.view_comments_by_admin__limit'
+        limit_key_name='practice.views.view_comments_by_admin__limit',
+        offset_in_params=params.get('offset', ''),
+        records_count=Comment.objects.filter(*filters).distinct().count()
     )
-    page_count = math_ceil(Comment.objects.filter(*filters).count() / limit) or 1
-    page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-    offset = (page_offset - 1) * limit
 
-    comments = Comment.objects.filter(*filters).order_by('-updated_at')[offset:(offset + limit)]
+    comments = Comment.objects.filter(*filters).order_by('-updated_at').distinct()[offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -1563,43 +1543,32 @@ def view_comments_by_admin(request, path_name=None, filters=None):
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_unlocked_comments_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_comments_by_admin(
-        request=request,
-        path_name='practice:view_unlocked_comments_by_admin',
-        filters=[~Q(state='Locked')]
-    )
+    return view_comments_by_admin(request, path_name='practice:view_unlocked_comments_by_admin', filters=[~Q(state='Locked')])
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_locked_comments_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_comments_by_admin(
-        request=request,
-        path_name='practice:view_locked_comments_by_admin',
-        filters=[Q(state='Locked')]
-    )
+    return view_comments_by_admin(request, path_name='practice:view_locked_comments_by_admin', filters=[Q(state='Locked')])
 
 
 @ensure_is_admin
 def process_comment_by_admin(request, comment_id):
     if request.method == 'GET':
-        comment = Comment.objects.filter(id=comment_id)
-        if not comment:
-            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
-        comment = comment[0]
-
         params = request.GET
+
         http_code = params.get('http_code')
         if http_code == '400':
             return HttpResponseBadRequest()
         elif http_code == '404':
             return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+
+        comment = Comment.objects.filter(id=comment_id)
+        if not comment:
+            return HttpResponseNotFound(_('<h1>Not Found</h1>'))
+        comment = comment[0]
 
         data = {
             'previous_adjacent_url': set_prev_adj_url(request),
@@ -1657,16 +1626,17 @@ def process_comment_by_admin(request, comment_id):
             else:
                 return redirect(to=f"{reverse('practice:process_comment_by_admin', args=[comment_id])}?http_code=400")
         else:
-            return OriginalHttpResponseBadRequest()
+            return _HttpResponseBadRequest()
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 def view_users_by_admin(request, path_name=None, filters=None):
     params = request.GET
-
     filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
+
+    filters = filters or []
 
     if params.get('filter', '') == 'input':
         request.session[filters_and_sorters_key_name] = {
@@ -1682,7 +1652,6 @@ def view_users_by_admin(request, path_name=None, filters=None):
     _filters_and_sorters = request.session[filters_and_sorters_key_name]
     filter_by_name = _filters_and_sorters['filter_by_name']
 
-    filters = filters or []
     if filter_by_name:
         names = [name.strip() for name in filter_by_name.split(',') if name.strip()]
         if names:
@@ -1694,17 +1663,15 @@ def view_users_by_admin(request, path_name=None, filters=None):
         if codes:
             filters.append(Q(code__iregex=r"^.*" + ('|'.join(codes)) + r".*$"))
 
-    limit = get_limit_for_list(
+    limit, page_offset, page_count, offset = get_limit_offset_count(
         session=request.session,
         limit_in_params=params.get('limit', ''),
-        limit_key_name='practice.views.view_users_by_admin__limit'
+        limit_key_name='practice.views.view_users_by_admin__limit',
+        offset_in_params=params.get('offset', ''),
+        records_count=get_user_model().objects.filter(*filters).exclude(role='Admin').distinct().count()
     )
-    page_count = math_ceil(get_user_model().objects.filter(*filters).exclude(role='Admin').count() / limit) or 1
-    page_offset = get_page_offset(offset_in_params=params.get('offset', ''), page_count=page_count)
-    offset = (page_offset - 1) * limit
 
-    users = get_user_model().objects.filter(*filters).exclude(role='Admin').order_by('-updated_at')[
-            offset:(offset + limit)]
+    users = get_user_model().objects.filter(*filters).exclude(role='Admin').order_by('-updated_at').distinct()[offset:(offset + limit)]
 
     context = {
         "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -1723,34 +1690,20 @@ def view_users_by_admin(request, path_name=None, filters=None):
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_unlocked_users_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_users_by_admin(
-        request=request,
-        path_name='practice:view_unlocked_users_by_admin',
-        filters=[~Q(state='Locked')]
-    )
+    return view_users_by_admin(request, path_name='practice:view_unlocked_users_by_admin', filters=[~Q(state='Locked')])
 
 
 @ensure_is_admin
+@require_http_methods(['GET'])
 def view_locked_users_by_admin(request):
-    if request.method != 'GET':
-        return OriginalHttpResponseBadRequest()
-
-    return view_users_by_admin(
-        request=request,
-        path_name='practice:view_locked_users_by_admin',
-        filters=[Q(state='Locked')]
-    )
+    return view_users_by_admin(request, path_name='practice:view_locked_users_by_admin', filters=[Q(state='Locked')])
 
 
 @ensure_is_admin
+@require_http_methods(['POST'])
 def process_user_by_admin(request, user_id):
-    if request.method != 'POST':
-        return OriginalHttpResponseBadRequest()
-
     user = get_user_model().objects.filter(id=user_id)
     if not user:
         return redirect(to=f"{reverse('practice:process_profile', args=[user_id])}?http_code=404")
@@ -1802,7 +1755,7 @@ def process_user_by_admin(request, user_id):
         else:
             return redirect(to=f"{reverse('practice:process_profile', args=[user.id])}?http_code=400")
     else:
-        return OriginalHttpResponseBadRequest()
+        return _HttpResponseBadRequest()
 
 
 @ensure_is_admin
@@ -1810,6 +1763,7 @@ def process_question_tags_by_admin(request):
     if request.method == 'GET':
         path_name = "practice:process_question_tags_by_admin"
         filters_and_sorters_key_name = f'{path_name}__filters_and_sorters'
+
         data = {
             'name': {'errors': [], 'value': '', 'label': _('Nhãn câu hỏi mới')},
             'errors': [],
@@ -1830,17 +1784,19 @@ def process_question_tags_by_admin(request):
         filter_by_name = _filters_and_sorters['filter_by_name']
         offset_in_params = params.get('offset', '')
 
-        limit = convert_to_non_negative_int(string=params.get('limit', ''), default=4)
-
         kfilter = {}
         if filter_by_name:
             names = [name.strip() for name in filter_by_name.split(',') if name.strip()]
             if names:
                 kfilter['name__iregex'] = r"^.*" + ('|'.join(names)) + r".*$"
 
-        page_count = math_ceil(QuestionTag.objects.filter(**kfilter).count() / limit) or 1
-        page_offset = get_page_offset(offset_in_params=offset_in_params, page_count=page_count)
-        offset = (page_offset - 1) * limit
+        limit, page_offset, page_count, offset = get_limit_offset_count(
+            session=request.session,
+            limit_in_params=params.get('limit', ''),
+            limit_key_name='',
+            offset_in_params=offset_in_params,
+            records_count=QuestionTag.objects.filter(**kfilter).distinct().count()
+        )
 
         data_in_params = params.get('data')
         if data_in_params:
@@ -1854,13 +1810,15 @@ def process_question_tags_by_admin(request):
                     name_value = data_in_params['name'].get('value')
                     if name_value and isinstance(name_value, type(data['name']['value'])):
                         data['name']['value'] = name_value
+
                 data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
+
             except (UnicodeDecodeError, ValueError):
                 pass
 
-        question_tags = QuestionTag.objects.filter(**kfilter).order_by('-id')[offset:(offset + limit)]
+        question_tags = QuestionTag.objects.filter(**kfilter).order_by('-id').distinct()[offset:(offset + limit)]
 
         context = {
             "suffix_utc": '' if not timezone.get_current_timezone_name() == 'UTC' else 'UTC',
@@ -1884,14 +1842,14 @@ def process_question_tags_by_admin(request):
             'errors': [],
         }
 
-        params = request.POST
         is_valid = True
+        params = request.POST
 
         data['name']['value'] = params.get('name', '')
         new_name = data['name']['value'].strip()
         if not new_name:
             is_valid = False
-            data['name']['errors'].append('Nhãn phải có thể đọc.')
+            data['name']['errors'].append('Nhãn cần có thể đọc.')
         elif QuestionTag.objects.filter(name=new_name):
             is_valid = False
             data['name']['errors'].append('Nhãn đã tồn tại.')
@@ -1907,12 +1865,11 @@ def process_question_tags_by_admin(request):
                 created_at=datetime.datetime.now(datetime.timezone.utc)
             )
             lg.save()
-            return redirect(
-                to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
+
+            return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset=1")
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
-        return redirect(
-            to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
+        return redirect(to=f"{reverse('practice:process_question_tags_by_admin')}?limit={params.get('limit', '')}&offset={params.get('offset', '')}&data={data_in_params}")
 
     else:
-        return OriginalHttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])

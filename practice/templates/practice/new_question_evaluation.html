@@ -132,7 +132,15 @@
                     <div id="id_previous_adjacent_link">
                         <a id="id__previous_adjacent_link" class="button" href="{% url 'practice:view_detail_question' question.id %}">Tới trang chi tiết câu hỏi</a>
                     </div>
-                    <h2>Câu hỏi:</h2>
+                    <div class="row">
+                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Nhãn câu hỏi:</strong>&nbsp;{{question.tag.name}}</p>
+                    </div>
+                    {% if question.get_display_hashtags %}
+                        <div class="row">
+                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.get_display_hashtags}}</p>
+                        </div>
+                    {% endif %}
+                    <h2>Nội dung câu hỏi:</h2>
                     <div style="display:flex;gap:3px;">
                         <p>{{question.content}}</p>
                         {% if question_latex_image %}
@@ -166,9 +174,30 @@
                                   placeholder="{{data.evaluation_content.label}}"
                                   title="{{data.evaluation_content.label}}"
                                   style="width:100%;">{{data.evaluation_content.value}}</textarea>
-                    {% for error in data.evaluation_content.errors %}
-                        <p class="error" data-ref="id_evaluation_content">{{error}}</p>
-                    {% endfor %}
+                        {% for error in data.evaluation_content.errors %}
+                            <p class="error" data-ref="id_evaluation_content">{{error}}</p>
+                        {% endfor %}
+                    </div>
+                    <div>
+                        <p>{{data.question_rating.label}}:</p>
+                        <div style="display:flex;gap:8px;">
+                            {% for rating in question_rating_range %}
+                                {% if data.question_rating.value == rating %}
+                                    <div style="display:flex;gap:3px;">
+                                        <input type="radio" id="id_question_rating_{{rating}}" name="question_rating" value="{{rating}}" checked/>
+                                        <label for="id_question_rating_{{rating}}">{{rating}}</label>
+                                    </div>
+                                {% else %}
+                                    <div>
+                                        <input type="radio" id="id__question_rating_{{rating}}" name="question_rating" value="{{rating}}"/>
+                                        <label for="id__question_rating_{{rating}}">{{rating}}</label>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% for error in data.question_rating.errors %}
+                            <p class="error" data-ref="id_question_rating">{{error}}</p>
+                        {% endfor %}
                     </div>
                     <div>
                         <button type="submit">OK</button>

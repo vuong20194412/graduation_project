@@ -5,9 +5,10 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.views.decorators.http import require_http_methods
 
 from .models import User
 
@@ -43,6 +44,7 @@ def set_prev_adj_url(request):
 notification_to_sign_in_key_name = 'users.views.process_sign_in__notification'
 
 
+@require_http_methods(['GET', 'POST'])
 def process_sign_up(request):
     if request.method == 'GET':
         data = {
@@ -162,7 +164,7 @@ def process_sign_up(request):
         return redirect(to=f"{reverse('users:sign_up')}?data={data_in_params}")
 
     else:
-        return HttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 def process_sign_in(request):
@@ -240,14 +242,12 @@ def process_sign_in(request):
         return redirect(to=f"{reverse('users:sign_in')}?data={data_in_params}")
 
     else:
-        return HttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])
 
 
 @ensure_is_not_anonymous_user
+@require_http_methods(['POST'])
 def process_logout(request):
-    if request.method != 'POST':
-        return HttpResponseBadRequest()
-
     logout(request)
     request.session[notification_to_sign_in_key_name] = "Thực hiện đăng xuất thành công"
     return redirect(to="users:sign_in")
@@ -337,4 +337,4 @@ def process_change_password(request):
         return redirect(to=f"{reverse('users:change_password')}?data={data_in_params}")
 
     else:
-        return HttpResponseBadRequest()
+        return HttpResponseNotAllowed(['GET', 'POST'])

@@ -1,6 +1,6 @@
 from django.templatetags.static import static
 from django.utils import timezone
-
+from django.http.response import HttpResponse
 import datetime
 
 URL_JS = r"\static\users\js\tz_sub_utc_minutes.js"
@@ -48,18 +48,19 @@ class TimezoneMiddleware:
         else:
             timezone.activate(datetime.timezone.utc)
         response = self.get_response(request)
-        contenttype = response.headers.get('Content-Type')
-        if not contenttype:
-            contenttype = response.headers.get('content-type')
+        if isinstance(response, HttpResponse):
+            contenttype = response.headers.get('Content-Type')
             if not contenttype:
-                if request.path.endswith(".png"):
-                    contenttype = 'image/png'
-                if request.path.endswith(".jpg") or request.path.endswith(".jpeg"):
-                    contenttype = 'image/jpg'
-            response.headers['Content-Type'] = contenttype
-        if 'text/html' in contenttype:
-            response.content = (f'<script src={static("users/js/tz_sub_utc_minutes.js")}>'
-                                f'</script>').encode() + response.content
-            # browser must not store html
-            response.headers['Cache-Control'] = 'no-store'
+                contenttype = response.headers.get('content-type')
+                if not contenttype:
+                    if request.path.endswith(".png"):
+                        contenttype = 'image/png'
+                    if request.path.endswith(".jpg") or request.path.endswith(".jpeg"):
+                        contenttype = 'image/jpg'
+                response.headers['Content-Type'] = contenttype
+            if 'text/html' in contenttype:
+                response.content = (f'<script src={static("users/js/tz_sub_utc_minutes.js")}>'
+                                    f'</script>').encode() + response.content
+                # browser must not store html
+                response.headers['Cache-Control'] = 'no-store'
         return response

@@ -164,6 +164,7 @@
                             <form method="POST" style="margin-bottom:0;"
                                   action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                                 {% csrf_token %}
+                                <input type="hidden" name="type" value="{{type}}"/>
                                 <input type="hidden" name="action" value="1"/>
                                 <button type="submit">Xử lý xong</button>
                             </form>
@@ -173,20 +174,22 @@
                     <div style="padding:8px;">
                         {% if comment %}
                             <p><strong>Trạng thái bình luận:</strong>&nbsp;{{comment.get_state_display}}</p>
-                            {% if evaluation.state == 'Pending' and comment.state != 'Locked' %}
+                            {% if type == 'comment' and evaluation.state == 'Pending' and comment.state != 'Locked' %}
                                  <form method="POST" style="margin-bottom:0;"
                                        action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                                     {% csrf_token %}
+                                     <input type="hidden" name="type" value="comment"/>
                                      <input type="hidden" name="action" value="2"/>
-                                    <button type="submit">Ẩn bình luận</button>
+                                     <button type="submit">Ẩn bình luận</button>
                                 </form>
                             {% endif %}
                         {% else %}
                             <p><strong>Trạng thái câu hỏi:</strong>&nbsp;{{question.get_state_display}}</p>
-                            {% if not comment and evaluation.state == 'Pending' and question.state != 'Locked' %}
+                            {% if type == 'question' and evaluation.state == 'Pending' and question.state != 'Locked' %}
                                  <form method="POST" style="margin-bottom:0;"
                                        action="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">
                                     {% csrf_token %}
+                                    <input type="hidden" name="type" value="question"/>
                                     <input type="hidden" name="action" value="3"/>
                                     <button type="submit">Ẩn câu hỏi</button>
                                 </form>
@@ -231,6 +234,9 @@
                     </div>
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
                         <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a></p>
+                    </div>
+                    <div class="row">
+                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Nhãn câu hỏi:</strong>&nbsp;{{question.tag.name}}</p>
                     </div>
                     {% if question.get_display_hashtags %}
                         <div class="row">

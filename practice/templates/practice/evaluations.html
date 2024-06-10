@@ -313,7 +313,7 @@
                         </div>
                         <div class="evaluation_addition">
                             <div>
-                                <a class="button" href="{% url 'practice:process_evaluation_by_admin' evaluation.id %}">Xem chi tiết</a>
+                                <a class="button" href="{% url 'practice:process_evaluation_by_admin' evaluation.id %}?type={{evaluation_conditions.type}}">Xem chi tiết</a>
                             </div>
                             <div style="display:flex;gap:8px;flex-direction:row-reverse;">
                                 <div style="display:flex;flex-direction:column;">

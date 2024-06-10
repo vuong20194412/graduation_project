@@ -96,13 +96,3 @@ class User(AbstractBaseUser):
         """Does the user have permissions to view the app `app_label`?
         Simplest possible answer: Yes, always"""
         return True
-
-
-class Log(models.Model):
-    model_name = models.CharField(verbose_name=_('tên lớp đối tượng'), max_length=255, )
-    object_id = models.IntegerField(verbose_name=_('id đối tượng'), )
-    user_id = models.IntegerField(verbose_name=_('id người thực hiện'), )
-    content = models.TextField(verbose_name=_('nội dung thay đổi'), default='')
-    created_at = models.DateTimeField(_('thời điểm tạo'), )
-
-    objects = models.Manager()

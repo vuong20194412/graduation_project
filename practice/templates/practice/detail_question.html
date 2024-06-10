@@ -259,13 +259,27 @@
             <div class="in_main" autofocus>
                 <div id="id_question">
                     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-direction:row-reverse;">
-                        <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a></p>
-                    </div>
-                    {% if question.get_display_hashtags %}
-                        <div class="row">
-                            <p style="max-width:calc(100% - 60px);word-break:break-word;">{{question.get_display_hashtags}}</p>
+                        <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;">
+                            <span><strong>Mã tác giả:</strong></span>
+                            <span><a href="{% url 'practice:process_profile' question.user.id %}" style="text-decoration:none;">{{question.user.code}}</a></span>
                         </div>
-                    {% endif %}
+                        {% if question_evaluation_count %}
+                            <div style="display:flex;flex-wrap:wrap;row-gap:3px;width:fit-content;min-width:fit-content;">
+                                <span>{{question_rating}} sao</span>
+                                <span>/{{question_evaluation_count}} đánh giá</span>
+                            </div>
+                        {% endif %}
+                        <div style="display:flex;flex-wrap:wrap;gap:3px;">
+                            <span>{{question.get_number_of_answers}} lượt làm</span>
+                            <span>{{question.get_number_of_comments}} bình luận</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:3px;align-item:center;flex-wrap:wrap;height:fit-content;margin-top:8px;">
+                        <label style="width:fit-content;min-width:fit-content;"><strong>{{question.tag.name}}</strong></label>
+                        {% if question.get_display_hashtags %}
+                            <label style="max-width:calc(100% - 60px);word-break:break-word;width:fit-content;min-width:fit-content;">{{question.get_display_hashtags}}</label>
+                        {% endif %}
+                    </div>
 
                     <div style="display:flex;gap:3px;">
                         <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
