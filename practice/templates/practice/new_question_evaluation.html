@@ -164,6 +164,20 @@
                             <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                         </div>
                         {% endif %}
+
+                        {% if question_video %}
+                            <div class="row">
+                                <video controls style="max-width:calc(100% - 16px);align-self:center;">
+                                    <source src="{{question_video.url}}" type="video/mp4"/>
+                                </video>
+                            </div>
+                        {% endif %}
+
+                        {% if question_audio %}
+                            <div class="row">
+                                <audio controls src="{{question_audio.url}}" style="max-width:calc(100% - 16px);align-self:center;"></audio>
+                            </div>
+                        {% endif %}
                     <div>
                         <h2>Đánh giá:</h2>
                     </div>

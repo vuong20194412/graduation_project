@@ -143,6 +143,7 @@
             position: relative;
         }
         #limit_comment>form {
+            box-sizing: border-box;
             margin-bottom: 0;
             min-width: 100%;
             display: flex;
@@ -161,11 +162,34 @@
             display: none;
         }
         #id_question_comment {
+            box-sizing: border-box;
             border-top:1px solid #000000;
-            padding-top:8px;
             display:flex;
             flex-direction:column;
             gap:8px;
+            padding: 8px;
+        }
+        #id_comments>div.comment {
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            border-top: 1px solid #C3C3C3;
+            border-left: 1px solid #C3C3C3;
+            border-right: 1px solid #C3C3C3;
+            padding: 8px;
+            gap: 8px;
+        }
+        #id_comments:last-child {
+            border-bottom: 1px solid #C3C3C3;
+        }
+        #id_limit_offset_comment {
+            box-sizing: border-box;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            row-gap: 8px;
+            flex-wrap: wrap;
         }
     </style>
 </head>
@@ -307,6 +331,20 @@
                         <img src="{{question_addition_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                     </div>
                     {% endif %}
+
+                    {% if question_video %}
+                        <div class="row">
+                            <video controls style="max-width:calc(100% - 16px);align-self:center;">
+                                <source src="{{question_video.url}}" type="video/mp4"/>
+                            </video>
+                        </div>
+                    {% endif %}
+
+                    {% if question_audio %}
+                        <div class="row">
+                            <audio controls src="{{question_audio.url}}" style="max-width:calc(100% - 16px);align-self:center;"></audio>
+                        </div>
+                    {% endif %}
                 </div>
 
                 {% if question.state == 'Approved' and user.role != 'Admin' %}
@@ -323,7 +361,7 @@
                     {% if showing_comments %}
                         <div id="id_question_comment">
                             <h2>Phần bình luận</h2>
-                            <form method="POST" action="{% url 'practice:process_comments_in_question' question.id %}" style="display:flex;flex-direction:column;gap:4px;">
+                            <form method="POST" action="{% url 'practice:process_comments_in_question' question.id %}" style="display:flex;flex-direction:column;gap:4px;margin-bottom:0;">
                                 {% csrf_token %}
                                 {% if comment_conditions.page_offset == 1 %}
                                     <textarea autofocus
@@ -344,7 +382,7 @@
                                     {% endfor %}
                                 </div>
                             </form>
-                            <div style="box-sizing:border-box;width:100%;display:flex;flex-direction:column;">
+                            <div id="id_limit_offset_comment">
                                 <div id="limit_comment" title="Chọn số bình luận trên mỗi trang">
                                     <div style="height:100%;padding:0 8px;display:flex;align-items:center;justify-content:space-between;">
                                         <label>{{comment_conditions.limit}} bình luận/trang</label>
@@ -370,17 +408,20 @@
                                 </div>
                                 {% include 'practice/list_nav.html' with current_include_limit_exclude_offset_url=comment_conditions.include_limit_exclude_offset_url current_page_offset=comment_conditions.page_offset current_page_range=comment_conditions.page_range current_limit=comment_conditions.limit%}
                             </div>
-                            <div>
+                            <div id="id_comments">
                                 {% for comment in comments %}
-                                    <div style="display:flex;flex-direction:column;border-top:2px solid gray;padding:4px;">
-                                        <p>{{comment.content}}</p>
-                                        <div style="display:flex;justify-content:space-between;">
+                                    <div class="comment">
+                                        <div style="display:flex;gap:3px;">
+                                            <label><strong>{{comment.user.name}}:</strong></label>
+                                            <label>{{comment.content}}</label>
+                                        </div>
+                                        <div style="display:flex;justify-content:space-between;gap:3px;">
                                             <div>
-                                                <a href="{% url 'practice:process_new_comment_evaluation' comment.id %}">Đánh giá</a>
+                                                <a class="button" href="{% url 'practice:process_new_comment_evaluation' comment.id %}">Đánh giá</a>
                                             </div>
-                                            <div style="display:flex;flex-direction:column;">
-                                                <span>{{comment.user.name}} <em>{{comment.user.code}}</em></span>
-                                                <span>{{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
+                                            <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+                                                <span><strong>Mã Người dùng:</strong>&nbsp;{{comment.user.code}}</span>
+                                                <span><strong>Thời điểm tạo:</strong>&nbsp;{{comment.created_at|date:"d/m/Y H:i:s"}} {{suffix_utc}}</span>
                                             </div>
                                         </div>
                                     </div>

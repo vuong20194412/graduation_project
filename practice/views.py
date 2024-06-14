@@ -741,73 +741,6 @@ def process_new_question(request):
                     hashtags.add(hashtag)
 
             create_at = datetime.datetime.now(datetime.timezone.utc)
-            qms = []
-            if latex_image_pathname:
-                qm = QuestionMedia(name='question_latex_image',
-                                   media_type='image',
-                                   created_at=create_at)
-                with open(latex_image_pathname, 'rb') as f:
-                    data = File(f)
-                    qm.file.save('latex.png', data)
-                qms.append(qm)
-
-            if image:
-                qm = QuestionMedia(name='question_addition_image',
-                                   file=image,
-                                   media_type='image',
-                                   created_at=create_at)
-                qms.append(qm)
-            elif params.get('using_old_image') and params.get('old_addition_image_url'):
-                addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
-                addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
-                if os.path.exists(addition_image_pathname):
-                    qm = QuestionMedia(name='question_addition_image',
-                                       media_type='image',
-                                       created_at=create_at)
-                    with open(addition_image_pathname, 'rb') as f:
-                        data = File(f)
-                        qm.file.save(addition_image_filename[(20 + len(f'{request.user.code[1:]}addition_')):], data)
-                    qms.append(qm)
-
-            if video:
-                qm = QuestionMedia(name='question_video',
-                                   file=video,
-                                   media_type='video',
-                                   created_at=create_at)
-                qms.append(qm)
-            elif params.get('using_old_video') and params.get('old_video_url'):
-                video_filename = params.get('old_video_url', '')[len(settings.TMP_MEDIA_URL):]
-                video_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, video_filename)
-                if os.path.exists(video_pathname):
-                    qm = QuestionMedia(name='question_video',
-                                       media_type='video',
-                                       created_at=create_at)
-                    with open(video_pathname, 'rb') as f:
-                        data = File(f)
-                        qm.file.save(video_filename[(20 + len(f'{request.user.code[1:]}')):], data)
-                    qms.append(qm)
-
-            if audio:
-                qm = QuestionMedia(name='question_audio',
-                                   file=audio,
-                                   media_type='audio',
-                                   created_at=create_at)
-                qms.append(qm)
-            elif params.get('using_old_audio') and params.get('old_audio_url'):
-                audio_filename = params.get('old_audio_url', '')[len(settings.TMP_MEDIA_URL):]
-                audio_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, audio_filename)
-                if os.path.exists(audio_pathname):
-                    qm = QuestionMedia(name='question_audio',
-                                       media_type='audio',
-                                       created_at=create_at)
-                    with open(audio_pathname, 'rb') as f:
-                        data = File(f)
-                        qm.file.save(audio_filename[(20 + len(f'{request.user.code[1:]}')):], data)
-                    qms.append(qm)
-
-            for qm in qms:
-                file = qm.file
-                print(file)
 
             q = Question(content=content,
                          state='Pending',
@@ -817,9 +750,76 @@ def process_new_question(request):
                          hashtags=','.join(hashtags),
                          created_at=create_at)
             q.save()
-            for qm in qms:
-                qm.question = q
+
+            if latex_image_pathname:
+                qm = QuestionMedia(name='question_latex_image',
+                                   media_type='image',
+                                   question_id=q.id,
+                                   created_at=create_at)
+                with open(latex_image_pathname, 'rb') as f:
+                    data = File(f)
+                    qm.file.save('latex.png', data)
                 qm.save()
+
+            if image:
+                qm = QuestionMedia(name='question_addition_image',
+                                   media_type='image',
+                                   question_id=q.id,
+                                   file=image,
+                                   created_at=create_at)
+                qm.save()
+            elif params.get('using_old_image') and params.get('old_addition_image_url'):
+                addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
+                addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
+                if os.path.exists(addition_image_pathname):
+                    qm = QuestionMedia(name='question_addition_image',
+                                       media_type='image',
+                                       question_id=q.id,
+                                       created_at=create_at)
+                    with open(addition_image_pathname, 'rb') as f:
+                        data = File(f)
+                        qm.file.save(addition_image_filename[(20 + len(f'{request.user.code[1:]}addition_')):], data)
+                    qm.save()
+
+            if video:
+                qm = QuestionMedia(name='question_video',
+                                   media_type='video',
+                                   question_id=q.id,
+                                   file=video,
+                                   created_at=create_at)
+                qm.save()
+            elif params.get('using_old_video') and params.get('old_video_url'):
+                video_filename = params.get('old_video_url', '')[len(settings.TMP_MEDIA_URL):]
+                video_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, video_filename)
+                if os.path.exists(video_pathname):
+                    qm = QuestionMedia(name='question_video',
+                                       media_type='video',
+                                       question_id=q.id,
+                                       created_at=create_at)
+                    with open(video_pathname, 'rb') as f:
+                        data = File(f)
+                        qm.file.save(video_filename[(20 + len(f'{request.user.code[1:]}')):], data)
+                    qm.save()
+
+            if audio:
+                qm = QuestionMedia(name='question_audio',
+                                   media_type='audio',
+                                   question_id=q.id,
+                                   file=audio,
+                                   created_at=create_at)
+                qm.save()
+            elif params.get('using_old_audio') and params.get('old_audio_url'):
+                audio_filename = params.get('old_audio_url', '')[len(settings.TMP_MEDIA_URL):]
+                audio_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, audio_filename)
+                if os.path.exists(audio_pathname):
+                    qm = QuestionMedia(name='question_audio',
+                                       media_type='audio',
+                                       question_id=q.id,
+                                       created_at=create_at)
+                    with open(audio_pathname, 'rb') as f:
+                        data = File(f)
+                        qm.file.save(audio_filename[(20 + len(f'{request.user.code[1:]}')):], data)
+                    qm.save()
 
             request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
             return redirect(to='practice:view_detail_question', question_id=q.id)
@@ -886,6 +886,8 @@ def process_new_answer(request, question_id):
             'data': data,
             "question_addition_image": question.get_addition_image(),
             "question_latex_image": question.get_latex_image(),
+            "question_video": question.get_video(),
+            "question_audio": question.get_audio(),
         }
         return render(request, "practice/new_answer.html", context)
 
@@ -1009,6 +1011,8 @@ def view_question(request, question_id, showing_comments: bool = False):
         "past_answers": past_answers,
         "question_addition_image": question.get_addition_image(),
         "question_latex_image": question.get_latex_image(),
+        "question_video": question.get_video(),
+        "question_audio": question.get_audio(),
     }
 
     if showing_comments:
@@ -1091,6 +1095,8 @@ def view_detail_answer(request, answer_id):
         "data": data,
         "question_addition_image": answer.question.get_addition_image(),
         "question_latex_image": answer.question.get_latex_image(),
+        "question_video": answer.question.get_video(),
+        "question_audio": answer.question.get_audio(),
     }
     return render(request, "practice/detail_answer.html", context)
 
@@ -1197,6 +1203,8 @@ def process_new_question_evaluation(request, question_id):
             "question_rating_range": ['1', '2', '3', '4', '5'],
             "question_addition_image": question.get_addition_image(),
             "question_latex_image": question.get_latex_image(),
+            "question_video": question.get_video(),
+            "question_audio": question.get_audio(),
         }
         return render(request, "practice/new_question_evaluation.html", context)
 
@@ -1596,6 +1604,8 @@ def process_evaluation_by_admin(request, evaluation_id):
             "data": data,
             "question_addition_image": question.get_addition_image(),
             "question_latex_image": question.get_latex_image(),
+            "question_video": question.get_video(),
+            "question_audio": question.get_audio(),
         }
         return render(request, "practice/detail_evaluation.html", context)
 
@@ -1773,6 +1783,8 @@ def process_comment_by_admin(request, comment_id):
             "data": data,
             "question_addition_image": comment.question.get_addition_image(),
             "question_latex_image": comment.question.get_latex_image(),
+            "question_video": comment.question.get_video(),
+            "question_audio": comment.question.get_audio(),
         }
         return render(request, "practice/detail_comment.html", context)
 

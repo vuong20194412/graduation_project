@@ -66,16 +66,30 @@ class Question(models.Model):
 
     def get_latex_image(self):
         if self.id:
-            image = QuestionMedia.objects.filter(question_id=self.id, name='question_latex_image', media_type='image')
-            if image:
-                return image[0].image
+            qm = QuestionMedia.objects.filter(question_id=self.id, name='question_latex_image', media_type='image')
+            if qm:
+                return qm[0].file
         return None
 
     def get_addition_image(self):
         if self.id:
-            qi = QuestionMedia.objects.filter(question_id=self.id, name='question_addition_image', media_type='image')
-            if qi:
-                return qi[0].image
+            qm = QuestionMedia.objects.filter(question_id=self.id, name='question_addition_image', media_type='image')
+            if qm:
+                return qm[0].file
+        return None
+
+    def get_video(self):
+        if self.id:
+            qm = QuestionMedia.objects.filter(question_id=self.id, name='question_video', media_type='video')
+            if qm:
+                return qm[0].file
+        return None
+
+    def get_audio(self):
+        if self.id:
+            qm = QuestionMedia.objects.filter(question_id=self.id, name='question_audio', media_type='audio')
+            if qm:
+                return qm[0].file
         return None
 
     def get_rating(self):
