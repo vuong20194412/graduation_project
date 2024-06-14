@@ -107,11 +107,11 @@ class QuestionMedia(models.Model):
         now = self.created_at
         salt = f"{random.randrange(1, 999999)}_"
         prefix = f"{media_type}s/practice/{now.strftime('%Y%m%d%H')}/{now.strftime('%M%S%f')}"
-        media_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, prefix + salt + filename)
+        media_pathname = pathlib.Path(settings.MEDIA_ROOT, prefix + salt + filename)
         while os.path.exists(media_pathname):
             salt = f"{random.randrange(1, 999999)}_"
-            media_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, prefix + salt + filename)
-        return media_pathname
+            media_pathname = pathlib.Path(settings.MEDIA_ROOT, prefix + salt + filename)
+        return prefix + salt + filename
 
     MAX_IMAGE_SIZE = 2.4
     MAX_VIDEO_SIZE = 12
