@@ -221,11 +221,58 @@
                         {% for error in data.image.errors %}
                             <p class="error" data-ref="id_image">{{error}}</p>
                         {% endfor %}
+                        {% for note in data.image.notes %}
+                            <p class="note" data-ref="id_image">{{note}}</p>
+                        {% endfor %}
                         {% if preview_question and addition_image_url %}
                             <input type="hidden" name="old_addition_image_url" value="{{addition_image_url}}"/>
                             <div style="display:flex;gap:3px;">
                                 <input type="checkbox" name="using_old_image" id="using_old_image" checked/>
                                 <label for="using_old_image">Dùng ảnh đã tải lên đang hiển thị trong phần xem trước nếu không chọn ảnh</label>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <label class="native" for="id_video">{{data.video.label}}:</label>
+                        {% if data.video.hint %}
+                            <span style="word-break:break-word;">({{data.video.hint}})</span>
+                        {% endif %}
+                        <input type="file" name="video" id="id_video" accept=".mp4"
+                               title="{{data.video.label}}" style="width:fit-content;min-width:200px;"/>
+                        {% for error in data.video.errors %}
+                            <p class="error" data-ref="id_video">{{error}}</p>
+                        {% endfor %}
+                        {% for note in data.video.notes %}
+                            <p class="note" data-ref="id_video">{{note}}</p>
+                        {% endfor %}
+                        {% if preview_question and video_url %}
+                            <input type="hidden" name="old_video_url" value="{{video_url}}"/>
+                            <div style="display:flex;gap:3px;">
+                                <input type="checkbox" name="using_old_video" id="using_old_video" checked/>
+                                <label for="using_old_video">Dùng video đã tải lên đang hiển thị trong phần xem trước nếu không chọn video</label>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <label class="native" for="id_audio">{{data.audio.label}}:</label>
+                        {% if data.audio.hint %}
+                            <span style="word-break:break-word;">({{data.audio.hint}})</span>
+                        {% endif %}
+                        <input type="file" name="audio" id="id_audio" accept=".mp3"
+                               title="{{data.audio.label}}" style="width:fit-content;min-width:200px;"/>
+                        {% for error in data.audio.errors %}
+                            <p class="error" data-ref="id_audio">{{error}}</p>
+                        {% endfor %}
+                        {% for note in data.audio.notes %}
+                            <p class="note" data-ref="id_audio">{{note}}</p>
+                        {% endfor %}
+                        {% if preview_question and audio_url %}
+                            <input type="hidden" name="old_audio_url" value="{{audio_url}}"/>
+                            <div style="display:flex;gap:3px;">
+                                <input type="checkbox" name="using_old_audio" id="using_old_audio" checked/>
+                                <label for="using_old_audio">Dùng audio đã tải lên đang hiển thị trong phần xem trước nếu không chọn audio</label>
                             </div>
                         {% endif %}
                     </div>
@@ -240,18 +287,19 @@
                         <div>
                             <h2>Phần xem trước</h2>
                         </div>
-                        {% if preview_question.get_display_hashtags %}
-                            <div class="row">
-                                <p style="max-width:calc(100% - 60px);word-break:break-word;">{{preview_question.get_display_hashtags}}</p>
-                            </div>
-                        {% endif %}
+                        <div style="display:flex;gap:3px;align-item:center;flex-wrap:wrap;height:fit-content;margin-top:8px;">
+                            <label style="width:fit-content;min-width:fit-content;"><strong>{{preview_question.tag_name}}</strong></label>
+                            {% if preview_question.get_display_hashtags %}
+                                <label style="max-width:calc(100% - 60px);word-break:break-word;width:fit-content;min-width:fit-content;">{{preview_question.get_display_hashtags}}</label>
+                            {% endif %}
+                        </div>
 
                         <div style="display:flex;gap:3px;">
                             <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
                             <div style="display:flex;gap:3px;">
                                 <p>{{preview_question.content}}</p>
                                 {% if latex_image_url %}
-                                    <img src="{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                    <img src="{{base_url}}{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
                                 {% endif %}
                             </div>
                         </div>
@@ -269,7 +317,21 @@
 
                         {% if addition_image_url %}
                             <div class="row">
-                                <img src="{{addition_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                                <img src="{{base_url}}{{addition_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
+                            </div>
+                        {% endif %}
+
+                        {% if video_url %}
+                            <div class="row">
+                                <video controls style="max-width:calc(100% - 16px);align-self:center;">
+                                    <source src="{{base_url}}{{video_url}}" type="video/mp4"/>
+                                </video>
+                            </div>
+                        {% endif %}
+
+                        {% if audio_url %}
+                            <div class="row">
+                                <audio controls src="{{base_url}}{{audio_url}}" style="max-width:calc(100% - 16px);align-self:center;"></audio>
                             </div>
                         {% endif %}
                     </div>

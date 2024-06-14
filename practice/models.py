@@ -1,3 +1,8 @@
+import os.path
+import pathlib
+import random
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import Max, F, Q, Subquery
@@ -51,7 +56,7 @@ class Question(models.Model):
         return True
 
     def get_display_hashtags(self):
-        return f'#{(self.hashtags or "").replace(",", " #")}'
+        return f'#{(self.hashtags or "").replace(",", " #")}' if self.hashtags else ''
 
     def get_number_of_answers(self):
         return self.answer_set.count()
@@ -61,14 +66,14 @@ class Question(models.Model):
 
     def get_latex_image(self):
         if self.id:
-            image = QuestionImage.objects.filter(question_id=self.id, name='question_latex_image')
+            image = QuestionMedia.objects.filter(question_id=self.id, name='question_latex_image', media_type='image')
             if image:
                 return image[0].image
         return None
 
     def get_addition_image(self):
         if self.id:
-            qi = QuestionImage.objects.filter(question_id=self.id, name='question_addition_image')
+            qi = QuestionMedia.objects.filter(question_id=self.id, name='question_addition_image', media_type='image')
             if qi:
                 return qi[0].image
         return None
@@ -87,18 +92,31 @@ class Question(models.Model):
         return 0, 0
 
 
-class QuestionImage(models.Model):
-    name = models.CharField(_('tên mục đích ảnh'), max_length=255, )
+class QuestionMedia(models.Model):
+    name = models.CharField(_('tên mục đích media'), max_length=255, )
     question = models.ForeignKey(verbose_name=_('nhãn câu hỏi'), to=Question, on_delete=models.RESTRICT, )
+    STATE_CHOICES = (
+        ('image', _('Hình ảnh')),
+        ('video', _('Video')),
+        ('audio', _('Audio')),
+    )
+    media_type = models.CharField(verbose_name=_('tên loại media'), max_length=255, choices=STATE_CHOICES, default='image', )
 
     def upload_to(self, filename):
-        question = self.question
-        qid = question.id
-        code = question.user.code[1:]
+        media_type = self.media_type
         now = self.created_at
-        return f"images/practice/{now.strftime('%Y%m%d%H')}/{code}/{now.strftime('%M%S%f')}{qid}_" + filename
+        salt = f"{random.randrange(1, 999999)}_"
+        prefix = f"{media_type}s/practice/{now.strftime('%Y%m%d%H')}/{now.strftime('%M%S%f')}"
+        media_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, prefix + salt + filename)
+        while os.path.exists(media_pathname):
+            salt = f"{random.randrange(1, 999999)}_"
+            media_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, prefix + salt + filename)
+        return media_pathname
 
-    image = models.ImageField(verbose_name=_('tên tệp hình ảnh'), upload_to=upload_to, )
+    MAX_IMAGE_SIZE = 2.4
+    MAX_VIDEO_SIZE = 12
+    MAX_AUDIO_SIZE = 1.2
+    file = models.FileField(verbose_name=_('tên tệp media'), upload_to=upload_to, unique=True)
     # datetime.datetime.now(datetime.timezone.utc)
     created_at = models.DateTimeField(_('thời điểm tạo'), )
 

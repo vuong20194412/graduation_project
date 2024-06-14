@@ -20,7 +20,7 @@ from django.views.decorators.http import require_http_methods
 from sympy import preview as sympy_preview
 from users.views import ensure_is_not_anonymous_user, ensure_is_admin, set_prev_adj_url
 
-from .models import QuestionTag, Question, Answer, Comment, QuestionImage, Log, QuestionEvaluation, CommentEvaluation
+from .models import QuestionTag, Question, Answer, Comment, QuestionMedia, Log, QuestionEvaluation, CommentEvaluation
 
 
 class HttpResponseBadRequest(_HttpResponseBadRequest):
@@ -38,12 +38,14 @@ def convert_to_non_negative_int(string: str, default: int = 0):
 
 
 def get_limit_offset_count(session, limit_in_params: str, limit_key_name: str, offset_in_params: str, records_count: int):
-    limit = convert_to_non_negative_int(string=limit_in_params, default=0)
     if limit_key_name:
+        limit = convert_to_non_negative_int(string=limit_in_params, default=0)
         if not limit:
             limit = session.get(limit_key_name, 4)
         elif limit != session.get(limit_key_name, 0):
             session[limit_key_name] = limit
+    else:
+        limit = convert_to_non_negative_int(string=limit_in_params, default=4)
 
     page_count = math.ceil(records_count / limit) or 1
 
@@ -361,7 +363,11 @@ def process_new_question(request):
             'choices': {'errors': [], 'value': [default_choice, default_choice, default_choice, default_choice],
                         'label': _('Các lựa chọn'), 'hint': _('tối thiểu phải có 2 lựa chọn có nội dung, có ít nhất 1 lựa chọn có nội dung là lựa chọn đúng')},
             'image': {'errors': [], 'value': '', 'label': _('Hình ảnh'),
-                      'hint': _('1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới 2MB')},
+                      'hint': _('1 tệp *.png, *.jpg hoặc *.jpeg và kích thước dưới ') + f'{QuestionMedia.MAX_IMAGE_SIZE}MB', 'notes': []},
+            'video': {'errors': [], 'value': '', 'label': _('Video'),
+                      'hint': _('1 tệp *.mp4 và kích thước dưới ') + f'{QuestionMedia.MAX_VIDEO_SIZE}MB', 'notes': []},
+            'audio': {'errors': [], 'value': '', 'label': _('Audio'),
+                      'hint': _('1 tệp *.mp3 và kích thước dưới ') + f'{QuestionMedia.MAX_AUDIO_SIZE}MB', 'notes': []},
             'errors': [],
             'previous_adjacent_url': set_prev_adj_url(request),
         }
@@ -429,20 +435,54 @@ def process_new_question(request):
                     if image_errors and isinstance(image_errors, type(data['image']['errors'])):
                         for image_error in image_errors:
                             data['image']['errors'].append(_(image_error))
-                data_errors = data_in_params.get('errors')
+                    image_notes = data_in_params['image'].get('notes')
+                    if image_notes and isinstance(image_notes, type(data['image']['notes'])):
+                        for image_note in image_notes:
+                            data['image']['notes'].append(_(image_note))
 
+                if 'video' in data_in_params and isinstance(data_in_params['video'], dict):
+                    video_errors = data_in_params['video'].get('errors')
+                    if video_errors and isinstance(video_errors, type(data['video']['errors'])):
+                        for video_error in video_errors:
+                            data['video']['errors'].append(_(video_error))
+                    video_notes = data_in_params['video'].get('notes')
+                    if video_notes and isinstance(video_notes, type(data['video']['notes'])):
+                        for video_note in video_notes:
+                            data['video']['notes'].append(_(video_note))
+
+                if 'audio' in data_in_params and isinstance(data_in_params['audio'], dict):
+                    audio_errors = data_in_params['audio'].get('errors')
+                    if audio_errors and isinstance(audio_errors, type(data['audio']['errors'])):
+                        for audio_error in audio_errors:
+                            data['audio']['errors'].append(_(audio_error))
+                    audio_notes = data_in_params['audio'].get('notes')
+                    if audio_notes and isinstance(audio_notes, type(data['audio']['notes'])):
+                        for audio_note in audio_notes:
+                            data['audio']['notes'].append(_(audio_note))
+
+                data_errors = data_in_params.get('errors')
                 if data_errors and isinstance(data_errors, type(data['errors'])):
                     data['errors'] = data_errors
 
                 context['preview_question'] = data_in_params.get('preview_question')
 
+                context['base_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/'
+
                 addition_image_filename = data_in_params.get('addition_image_filename')
                 if addition_image_filename:
-                    context['addition_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + addition_image_filename
+                    context['addition_image_url'] = settings.TMP_MEDIA_URL + addition_image_filename
 
                 latex_image_filename = data_in_params.get('latex_image_filename')
                 if latex_image_filename:
-                    context['latex_image_url'] = (request.scheme if request.scheme in ['http', 'https'] else 'http') + '://' + request.get_host() + '/' + settings.TMP_MEDIA_URL + latex_image_filename
+                    context['latex_image_url'] = settings.TMP_MEDIA_URL + latex_image_filename
+
+                video_filename = data_in_params.get('video_filename')
+                if video_filename:
+                    context['video_url'] = settings.TMP_MEDIA_URL + video_filename
+
+                audio_filename = data_in_params.get('audio_filename')
+                if audio_filename:
+                    context['audio_url'] = settings.TMP_MEDIA_URL + audio_filename
 
             except (UnicodeDecodeError, ValueError):
                 pass
@@ -458,7 +498,9 @@ def process_new_question(request):
             'content': {'errors': [], 'value': ''},
             'latex_content': {'errors': [], 'value': ''},
             'choices': {'errors': [], 'value': []},
-            'image': {'errors': []},
+            'image': {'errors': [], 'notes': []},
+            'video': {'errors': [], 'notes': []},
+            'audio': {'errors': [], 'notes': []},
             'errors': [],
         }
 
@@ -466,8 +508,8 @@ def process_new_question(request):
 
         image = request.FILES.get('image')
         if image:
-            limit_image_file_size = 2097152  # 2 * 1024 * 1024
-            if image.content_type not in ('image/png', 'image/jpeg'):
+            limit_image_file_size = QuestionMedia.MAX_IMAGE_SIZE * 1024 * 1024
+            if image.content_type not in ('image/png', 'image/jpeg') or not image.name or (not image.name.endswith('.png') and not image.name.endswith('.jpg') and not image.name.endswith('.jpeg')):
                 is_valid = False
                 data['image']['errors'].append('Hình ảnh phải là ảnh .png, .jpg hoặc .jpeg')
                 if image.size >= limit_image_file_size:
@@ -475,6 +517,30 @@ def process_new_question(request):
             elif image.size >= limit_image_file_size:
                 is_valid = False
                 data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
+
+        video = request.FILES.get('video')
+        if video:
+            limit_video_file_size = QuestionMedia.MAX_VIDEO_SIZE * 1024 * 1024
+            if video.content_type != 'video/mp4' or not video.name or not video.name.endswith('.mp4'):
+                is_valid = False
+                data['video']['errors'].append('Video phải là video .mp4')
+                if video.size >= limit_video_file_size:
+                    data['video']['errors'].append('Kích thước hình video phải bé hơn 2MB')
+            elif video.size >= limit_video_file_size:
+                is_valid = False
+                data['video']['errors'].append('Kích thước video phải bé hơn 2MB')
+
+        audio = request.FILES.get('audio')
+        if audio:
+            limit_audio_file_size = QuestionMedia.MAX_AUDIO_SIZE * 1024 * 1024
+            if audio.content_type != 'audio/mpeg' or not audio.name or not audio.name.endswith('.mp3'):
+                is_valid = False
+                data['audio']['errors'].append('Audio phải là audio .mp3')
+                if audio.size >= limit_audio_file_size:
+                    data['audio']['errors'].append('Kích thước audio phải bé hơn 2MB')
+            elif audio.size >= limit_audio_file_size:
+                is_valid = False
+                data['audio']['errors'].append('Kích thước audio phải bé hơn 2MB')
 
         params = request.POST
 
@@ -521,12 +587,17 @@ def process_new_question(request):
 
         data['tag_id']['value'] = params.get('tag_id', '')
         tag_id = convert_to_non_negative_int(string=str(data['tag_id']['value']), default=0)
+        tag_name = ''
         if tag_id == 0:
             is_valid = False
             data['tag_id']['errors'].append('Trường này không được để trống.')
-        elif not QuestionTag.objects.filter(id=tag_id):
-            is_valid = False
-            data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
+        else:
+            tag = QuestionTag.objects.filter(id=tag_id)
+            if not tag:
+                is_valid = False
+                data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
+            else:
+                tag_name = tag[0].name
 
         data['latex_content']['value'] = params.get('latex_content', '')
         latex_content = data['latex_content']['value'].strip()
@@ -545,18 +616,99 @@ def process_new_question(request):
                 else:
                     data['latex_content']['errors'].append('Có lỗi xảy ra, vui lòng thay đổi nội dung latex và thử lại')
 
+        if not image and params.get('using_old_image') and params.get('old_addition_image_url'):
+            old_addition_image_url = params.get('old_addition_image_url')
+            if not old_addition_image_url.startswith(settings.TMP_MEDIA_URL) or (not old_addition_image_url.endswith('.png') and not old_addition_image_url.endswith('.jpg') and not old_addition_image_url.endswith('.jpeg')):
+                is_valid = False
+                data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+            else:
+                addition_image_filename = old_addition_image_url[len(settings.TMP_MEDIA_URL):]
+                # prefix = f"{datetime.datetime.now(datetime.timezone.utc). strf time('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
+                exclude_datetime_prefix_filename = f"{request.user.code[1:]}addition_"
+                if (len(addition_image_filename) <= 20 + len(exclude_datetime_prefix_filename)
+                        or not addition_image_filename[20:].startswith(exclude_datetime_prefix_filename)
+                        or not re.match(
+                            pattern=re.compile(r'^((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
+                                               r'((0[1-9])|(1[0-2]))((0[1-9])|([1-2][0-9])|(3[0-1]))'
+                                               r'(([0-1][0-9])|(2[0-3]))[0-5][0-9][0-5][0-9][0-9]{6}$'),
+                            string=addition_image_filename[0:20])):
+                    is_valid = False
+                    data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+                else:
+                    addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
+                    if not os.path.exists(addition_image_pathname):
+                        is_valid = False
+                        data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+                    else:
+                        data['addition_image_filename'] = addition_image_filename
+
+        if not video and params.get('using_old_video') and params.get('old_video_url'):
+            old_video_url = params.get('old_video_url')
+            if not old_video_url.startswith(settings.TMP_MEDIA_URL) or not old_video_url.endswith('.mp4'):
+                is_valid = False
+                data['video']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn video thủ công')
+            else:
+                video_filename = old_video_url[len(settings.TMP_MEDIA_URL):]
+                # prefix = f"{datetime.datetime.now(datetime.timezone.utc). strf time('%Y%m%d%H%M%S%f')}{request.user.code[1:]}"
+                exclude_datetime_prefix_filename = f"{request.user.code[1:]}"
+                if (len(video_filename) <= 20 + len(exclude_datetime_prefix_filename)
+                        or not video_filename[20:].startswith(exclude_datetime_prefix_filename)
+                        or not re.match(
+                            pattern=re.compile(r'^((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
+                                               r'((0[1-9])|(1[0-2]))((0[1-9])|([1-2][0-9])|(3[0-1]))'
+                                               r'(([0-1][0-9])|(2[0-3]))[0-5][0-9][0-5][0-9][0-9]{6}$'),
+                            string=video_filename[0:20])):
+                    is_valid = False
+                    data['video']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn video thủ công')
+                else:
+                    video_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, video_filename)
+                    if not os.path.exists(video_pathname):
+                        is_valid = False
+                        data['video']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn video thủ công')
+                    else:
+                        data['video_filename'] = video_filename
+
+        if not audio and params.get('using_old_audio') and params.get('old_audio_url'):
+            old_audio_url = params.get('old_audio_url')
+            if not old_audio_url.startswith(settings.TMP_MEDIA_URL) or not old_audio_url.endswith('.mp3'):
+                is_valid = False
+                data['audio']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn audio thủ công')
+            else:
+                audio_filename = old_audio_url[len(settings.TMP_MEDIA_URL):]
+                # prefix = f"{datetime.datetime.now(datetime.timezone.utc). strf time('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
+                exclude_datetime_prefix_filename = f"{request.user.code[1:]}"
+                if (len(audio_filename) <= 20 + len(exclude_datetime_prefix_filename)
+                        or not audio_filename[20:].startswith(exclude_datetime_prefix_filename)
+                        or not re.match(
+                            pattern=re.compile(r'^((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
+                                               r'((0[1-9])|(1[0-2]))((0[1-9])|([1-2][0-9])|(3[0-1]))'
+                                               r'(([0-1][0-9])|(2[0-3]))[0-5][0-9][0-5][0-9][0-9]{6}$'),
+                            string=audio_filename[0:20])):
+                    is_valid = False
+                    data['audio']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn audio thủ công')
+                else:
+                    audio_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, audio_filename)
+                    if not os.path.exists(audio_pathname):
+                        is_valid = False
+                        data['audio']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn audio thủ công')
+                    else:
+                        data['audio_filename'] = audio_filename
+
         if params.get('preview'):
             hashtags = set()
             for hashtag in data['hashtags']['value']:
                 hashtag = hashtag.strip()
                 if hashtag:
                     hashtags.add(hashtag)
+
             data['preview_question'] = {
                 'content': content,
                 'choices': choices,
-                'tag_id': tag_id,
+                'tag_name': tag_name,
                 'hashtags': ','.join(hashtags),
+                'get_display_hashtags': f'#{" #".join(hashtags)}' if hashtags else '',
             }
+
             if image and not data['image']['errors']:
                 addition_image_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_{image.name}"
                 addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
@@ -565,80 +717,121 @@ def process_new_question(request):
                         f.write(chunk)
                 data['addition_image_filename'] = addition_image_filename
 
+            if video and not data['video']['errors']:
+                video_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}{video.name}"
+                video_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, video_filename)
+                with open(video_pathname, 'wb+') as f:
+                    for chunk in video.chunks():
+                        f.write(chunk)
+                data['video_filename'] = video_filename
+
+            if audio and not data['audio']['errors']:
+                audio_filename = f"{datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S%f')}{request.user.code[1:]}{audio.name}"
+                audio_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, audio_filename)
+                with open(audio_pathname, 'wb+') as f:
+                    for chunk in audio.chunks():
+                        f.write(chunk)
+                data['audio_filename'] = audio_filename
+
         elif is_valid:
-            if not image and params.get('using_old_image') and params.get('old_addition_image_url'):
-                if not params.get('old_addition_image_url', '').startswith(settings.TMP_MEDIA_URL):
-                    is_valid = False
-                    data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
-                else:
-                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
-                    # prefix = f"{datetime.datetime.now(datetime.timezone.utc). strf time('%Y%m%d%H%M%S%f')}{request.user.code[1:]}addition_"
-                    exclude_datetime_prefix_filename = f"{request.user.code[1:]}addition_"
-                    if (len(addition_image_filename) <= 20 + len(exclude_datetime_prefix_filename)
-                            or not addition_image_filename[20:].startswith(exclude_datetime_prefix_filename)
-                            or not re.match(
-                                pattern=re.compile(r'^((000[1-9])|(00[1-9][0-9])|(0[1-9][0-9]{2})|([1-9][0-9]{3}))'
-                                                   r'((0[1-9])|(1[0-2]))((0[1-9])|([1-2][0-9])|(3[0-1]))'
-                                                   r'(([0-1][0-9])|(2[0-3]))[0-5][0-9][0-5][0-9][0-9]{6}$'),
-                                string=addition_image_filename[0:20])):
-                        is_valid = False
-                        data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
-                    else:
-                        addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
-                        if not os.path.exists(addition_image_pathname):
-                            is_valid = False
-                            data['image']['errors'].append('Có lỗi xảy ra, vui lòng thực hiện chọn ảnh thủ công')
+            hashtags = set()
+            for hashtag in data['hashtags']['value']:
+                hashtag = hashtag.strip()
+                if hashtag:
+                    hashtags.add(hashtag)
 
-            if is_valid:
-                hashtags = set()
-                for hashtag in data['hashtags']['value']:
-                    hashtag = hashtag.strip()
-                    if hashtag:
-                        hashtags.add(hashtag)
+            create_at = datetime.datetime.now(datetime.timezone.utc)
+            qms = []
+            if latex_image_pathname:
+                qm = QuestionMedia(name='question_latex_image',
+                                   media_type='image',
+                                   created_at=create_at)
+                with open(latex_image_pathname, 'rb') as f:
+                    data = File(f)
+                    qm.file.save('latex.png', data)
+                qms.append(qm)
 
-                create_at = datetime.datetime.now(datetime.timezone.utc)
-                q = Question(content=content,
-                             state='Pending',
-                             choices=choices,
-                             tag_id=tag_id,
-                             user_id=request.user.id,
-                             hashtags=','.join(hashtags),
-                             created_at=create_at)
-                q.save()
-
-                if latex_image_pathname:
-                    qi = QuestionImage(name='question_latex_image',
-                                       question_id=q.id,
+            if image:
+                qm = QuestionMedia(name='question_addition_image',
+                                   file=image,
+                                   media_type='image',
+                                   created_at=create_at)
+                qms.append(qm)
+            elif params.get('using_old_image') and params.get('old_addition_image_url'):
+                addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
+                addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
+                if os.path.exists(addition_image_pathname):
+                    qm = QuestionMedia(name='question_addition_image',
+                                       media_type='image',
                                        created_at=create_at)
-                    with open(latex_image_pathname, 'rb') as f:
+                    with open(addition_image_pathname, 'rb') as f:
                         data = File(f)
-                        qi.image.save('latex.png', data)
-                    qi.save()
+                        qm.file.save(addition_image_filename[(20 + len(f'{request.user.code[1:]}addition_')):], data)
+                    qms.append(qm)
 
-                if image:
-                    qi = QuestionImage(name='question_addition_image',
-                                       question_id=q.id,
-                                       image=image,
+            if video:
+                qm = QuestionMedia(name='question_video',
+                                   file=video,
+                                   media_type='video',
+                                   created_at=create_at)
+                qms.append(qm)
+            elif params.get('using_old_video') and params.get('old_video_url'):
+                video_filename = params.get('old_video_url', '')[len(settings.TMP_MEDIA_URL):]
+                video_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, video_filename)
+                if os.path.exists(video_pathname):
+                    qm = QuestionMedia(name='question_video',
+                                       media_type='video',
                                        created_at=create_at)
-                    qi.save()
-                elif params.get('using_old_image') and params.get('old_addition_image_url'):
-                    addition_image_filename = params.get('old_addition_image_url', '')[len(settings.TMP_MEDIA_URL):]
-                    addition_image_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, addition_image_filename)
-                    if os.path.exists(addition_image_pathname):
-                        qi = QuestionImage(name='question_addition_image',
-                                           created_at=create_at)
-                        with open(addition_image_pathname, 'rb') as f:
-                            data = File(f)
-                            qi.image.save(addition_image_filename[(20 + len(f'{request.user.code[1:]}addition_')):],
-                                          data)
-                            qi.question_id = q.id
-                        qi.save()
+                    with open(video_pathname, 'rb') as f:
+                        data = File(f)
+                        qm.file.save(video_filename[(20 + len(f'{request.user.code[1:]}')):], data)
+                    qms.append(qm)
 
-                request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
-                return redirect(to='practice:view_detail_question', question_id=q.id)
+            if audio:
+                qm = QuestionMedia(name='question_audio',
+                                   file=audio,
+                                   media_type='audio',
+                                   created_at=create_at)
+                qms.append(qm)
+            elif params.get('using_old_audio') and params.get('old_audio_url'):
+                audio_filename = params.get('old_audio_url', '')[len(settings.TMP_MEDIA_URL):]
+                audio_pathname = pathlib.Path(settings.TMP_MEDIA_ROOT, audio_filename)
+                if os.path.exists(audio_pathname):
+                    qm = QuestionMedia(name='question_audio',
+                                       media_type='audio',
+                                       created_at=create_at)
+                    with open(audio_pathname, 'rb') as f:
+                        data = File(f)
+                        qm.file.save(audio_filename[(20 + len(f'{request.user.code[1:]}')):], data)
+                    qms.append(qm)
 
-        if (image or (params.get('using_old_image') and params.get('old_addition_image_url'))) and not data['image']['errors']:
-            data['image']['errors'].append('Lưu ý: Chọn ảnh nếu cần thiết.')
+            for qm in qms:
+                file = qm.file
+                print(file)
+
+            q = Question(content=content,
+                         state='Pending',
+                         choices=choices,
+                         tag_id=tag_id,
+                         user_id=request.user.id,
+                         hashtags=','.join(hashtags),
+                         created_at=create_at)
+            q.save()
+            for qm in qms:
+                qm.question = q
+                qm.save()
+
+            request.session[notification_to_view_detail_question_key_name] = "Thực hiện tạo câu hỏi thành công"
+            return redirect(to='practice:view_detail_question', question_id=q.id)
+
+        if not data['image']['errors'] and image and not params.get('preview'):
+            data['image']['notes'].append('Lưu ý: Chọn ảnh nếu cần thiết.')
+
+        if not data['video']['errors'] and video and not params.get('preview'):
+            data['video']['notes'].append('Lưu ý: Chọn video nếu cần thiết.')
+
+        if not data['audio']['errors'] and audio and not params.get('preview'):
+            data['audio']['notes'].append('Lưu ý: Chọn audio nếu cần thiết.')
 
         data_in_params = urlsafe_base64_encode(json.dumps(data, ensure_ascii=False).encode('utf-8'))
         return redirect(to=f"{reverse('practice:process_new_question')}?data={data_in_params}")
