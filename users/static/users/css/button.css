@@ -95,3 +95,43 @@ a.button:disabled {
 a.button:visited {
     color: var(--button-color);
 }
+
+input[type=submit].button {
+    box-sizing: border-box;
+    min-width: 100px;
+    height: 40px;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: var(--button);
+    border-color: var(--button);
+    border-width: 2px;
+    border-style: solid;
+    font-weight: bold;
+    font-size: 13px;
+    text-align: center;
+    color: var(--button-color);
+    text-wrap: nowrap;
+    display: inline-block;
+    text-decoration: none;
+    line-height: 16px;
+    font-family: none;
+    font-family: Arial;
+}
+input[type=submit].button:hover {
+    background-color: var(--button-hover-background-color);
+}
+input[type=submit].button:focus {
+    border-color: var(--button-focus-border-color);
+    box-shadow: var(--button-focus-shadow);
+}
+input[type=submit].button:active {
+    background-color: var(--button-active-background-color);
+}
+input[type=submit].button:disabled {
+    background-color: var(--button);
+    border-color: var(--button-focus-border-color);
+    opacity: 0.2;
+}
+input[type=submit].button:visited {
+    color: var(--button-color);
+}

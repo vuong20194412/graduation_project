@@ -42,7 +42,7 @@ input {
     min-width: 182px;
 }
 
-h2, p, label, span {
+h2, p, label, span, strong, em {
     font-family: none;
     font-family: Arial;
 }

@@ -125,7 +125,7 @@
             max-width: 100%;
             height: fit-content;
             min-height: 40px;
-            border-bottom: 2px solid #E7F2FE;
+            border-bottom: 1px solid #54A3F8;
             font-weight: bold;
             font-size: 13px;
             color: #000000;
@@ -146,10 +146,10 @@
             border-bottom-color: #04AE70;
             border-bottom-width: 2px;
             color: #04AE70;
-            opacity: 0.8;
+            opacity: 0.6;
         }
         aside.left_aside>.in_left_aside>nav>a.selected_a:hover {
-            opacity: 0.6;
+            opacity: 0.8;
         }
         aside.left_aside>.in_left_aside>nav>a + aside.left_aside>.in_left_aside>nav>a {
             margin-top: 4px;
@@ -170,11 +170,13 @@
             min-width: fit-content;
             max-width: fit-content;
             border-bottom: 0;
-            border-right: 2px solid #E7F2FE;
+            border-right: 1px solid #54A3F8;
           }
-          aside.left_aside>.in_left_aside>nav>a + aside.left_aside>.in_left_aside>nav>a {
+          aside.left_aside>.in_left_aside>nav:first-child {
+            border-left: 1px solid #54A3F8;
+          }
+          aside.left_aside>.in_left_aside>nav>a + a {
             margin-top: 0px;
-            margin-left: 4px;
           }
           aside.left_aside>.in_left_aside>nav>hr {
             display: none;
@@ -333,7 +335,7 @@
                         </form>
                     </div>
 
-                    {% if 'practice:view_created_questions' == path_name %}
+                    {% if user.role != 'Admin' %}
                         <a class="button" href="{% url 'practice:process_new_question' %}">Tạo câu hỏi</a>
                     {% endif %}
                 </div>
@@ -343,7 +345,7 @@
                         <div style="box-sizing:border-box;scroll-snap-align:start;
                                 width:100%;height:fit-content;
                                 display:flex;flex-direction:column;
-                                border: 1px solid #000000;border-radius:6px;
+                                border: 1px solid #000000;
                                 padding:3px 8px 0 8px;">
                             <div style="box-sizing: border-box;
                                         display: flex; gap: 4px;
@@ -354,7 +356,7 @@
                                     </span>
                                     <div>
                                         <strong style="line-height:13px;width:60px;">Câu hỏi:</strong>
-                                        <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.content|truncatechars:145}}</label>
+                                        <label style="max-width:calc(100% - 60px);word-break:break-word;">{{question.content}}</label>
                                     </div>
                                 </div>
                             </div>

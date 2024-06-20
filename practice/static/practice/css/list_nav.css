@@ -2,7 +2,7 @@
     --nav-in_main_nav-a-border: 1px solid #000000;
     --nav-in_main_nav-a: #E7F2FE;
     --nav-in_main_nav-a-color: #000000;
-    --nav-in_main_nav-selected_a: #6CB0F9;
+    --nav-in_main_nav-selected_a: #54A3F8;
     --nav-in_main_nav-selected_a-color: #FFFFFF;
 }
 
@@ -44,13 +44,14 @@ nav.in_main_nav>a.selected_a {
 }
 nav.in_main_nav>a:not(.selected_a):hover {
     border-width: 2px;
+    border-color: #000000AA;
     line-height: 32px;
     background-color: var(--nav-in_main_nav-selected_a);
     color: var(--nav-in_main_nav-selected_a-color);
-    opacity: 0.8;
+    opacity: 0.6;
 }
 nav.in_main_nav>a.selected_a:hover {
-    opacity: 0.6;
+    opacity: 0.8;
 }
 
 nav.in_main_nav>form {

@@ -1,7 +1,7 @@
 py -V
 pip -V
 py -m pip install --upgrade pip
-py -m pip install django
+py -m pip install django==5.0.6
 py -m django --version
 django-admin startproject graduation_project
 cd .\graduation_project\

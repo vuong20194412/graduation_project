@@ -12,7 +12,7 @@ body {
     background-color: var(--main);
 }
 
-h2, p, label, span {
+h2, p, label, span, strong, em, ol, ul, li {
     font-family: none;
     font-family: Arial;
 }

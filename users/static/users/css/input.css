@@ -11,12 +11,12 @@
     --radio-checked-outline: 2px solid #54A3F8;
     --radio-checked-border-color: #FFFFFF;
 }
-input, textarea, select {
+input:not([type=submit]), textarea, select {
     font-family: none;
     font-family: Arial;
 }
 
-input:not([type=checkbox]):not([type=radio]) {
+input:not([type=checkbox]):not([type=radio]):not([type=submit]) {
     box-sizing: border-box;
     height: 40px;
     border-radius: 6px;
@@ -28,17 +28,17 @@ input:not([type=checkbox]):not([type=radio]) {
     text-align: left;
     vertical-align: middle;
 }
-input:not([type=checkbox]):not([type=radio]):not(::placeholder) {
+input:not([type=checkbox]):not([type=radio]):not([type=submit]):not(::placeholder) {
     color: var(--input-color);
 }
-input:not([type=checkbox]):not([type=radio])::placeholder {
+input:not([type=checkbox]):not([type=radio]):not([type=submit])::placeholder {
     color: var(--input-placeholder-color);
 }
-input:not([type=checkbox]):not([type=radio]).error.apply {
+input:not([type=checkbox]):not([type=radio]):not([type=submit]).error.apply {
     border-width: 2px;
     border-color: var(--input-error-border-color);
 }
-input:not([type=checkbox]):not([type=radio]):focus {
+input:not([type=checkbox]):not([type=radio]):not([type=submit]):focus {
     border: 0;
     outline: var(--input-focus-outline);
 }

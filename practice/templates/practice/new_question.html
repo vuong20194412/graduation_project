@@ -278,8 +278,8 @@
                     </div>
 
                     <div style="display:flex;justify-content:space-between;padding:8px;background-color:#E4E4E4;">
-                        <input type="submit" name="create" value="Tạo"/>
-                        <input type="submit" name="preview" value="&#9013 Xem trước"/>
+                        <input type="submit" class="button" name="create" value="Tạo"/>
+                        <input type="submit" class="button" name="preview" value="&#9013 Xem trước"/>
                     </div>
                 </form>
                 {% if preview_question %}
@@ -287,7 +287,7 @@
                         <div>
                             <h2>Phần xem trước</h2>
                         </div>
-                        <div style="display:flex;gap:3px;align-item:center;flex-wrap:wrap;height:fit-content;margin-top:8px;">
+                        <div style="display:flex;gap:3px;align-items:center;flex-wrap:wrap;height:fit-content;margin-top:8px;">
                             <label style="width:fit-content;min-width:fit-content;"><strong>{{preview_question.tag_name}}</strong></label>
                             {% if preview_question.get_display_hashtags %}
                                 <label style="max-width:calc(100% - 60px);word-break:break-word;width:fit-content;min-width:fit-content;">{{preview_question.get_display_hashtags}}</label>
