@@ -373,7 +373,11 @@ def process_new_question(request):
         }
 
         referer_url = request.META.get('HTTP_REFERER')
-        if referer_url and referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))):
+        if referer_url and (
+                referer_url.startswith(request.build_absolute_uri(reverse('practice:view_created_questions'))) or
+                referer_url.startswith(request.build_absolute_uri(reverse('practice:view_unanswered_questions'))) or
+                referer_url.startswith(request.build_absolute_uri(reverse('practice:view_answered_questions')))
+        ):
             match = re.search(pattern=re.compile(r'\?tid=[0-9]+'), string=referer_url)
             if match:
                 tid = match.string[match.regs[0][0] + len('?tid='): match.regs[0][1]]
