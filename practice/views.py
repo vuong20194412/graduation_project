@@ -612,7 +612,149 @@ def process_new_question(request):
             with open(latex_image_pathname, 'wb+'):
                 pass
             try:
-                sympy_preview(latex_content, viewer='file', filename=latex_image_pathname, euler=False)
+                extra_preamble = ("\\usepackage[utf8]{inputenc}\n"
+                                  "\\DeclareUnicodeCharacter{1EA0}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EA1}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EA2}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EA3}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EA4}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EA5}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EAE}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EAF}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EB0}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EB1}{\\text{a}}" #ằ
+                                  
+                                  "\\DeclareUnicodeCharacter{1EB2}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EB3}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EB4}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EB5}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EB6}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EB7}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EA6}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EA7}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EA8}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EA9}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EAA}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EAB}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EAC}{\\text{A}}"
+                                  "\\DeclareUnicodeCharacter{1EAD}{\\text{a}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{0110}{\\text{D}}"
+                                  "\\DeclareUnicodeCharacter{0111}{\\text{d}}" #đ
+                                  
+                                  "\\DeclareUnicodeCharacter{1EBA}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EBB}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EBC}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EBD}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EBE}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EBF}{\\text{e}}" #ế
+                                  
+                                  "\\DeclareUnicodeCharacter{1EB8}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EB9}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EC0}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EC1}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EC2}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EC3}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EC4}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EC5}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EC6}{\\text{e}}"
+                                  "\\DeclareUnicodeCharacter{1EC7}{\\text{e}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EC8}{\\text{I}}"                      
+                                  "\\DeclareUnicodeCharacter{1EC9}{\\text{i}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ECA}{\\text{I}}"
+                                  "\\DeclareUnicodeCharacter{1ECB}{\\text{i}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ECC}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ECD}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ECE}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ECF}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ED0}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ED1}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ED2}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ED3}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ED4}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ED5}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ED6}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ED7}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1ED8}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1ED9}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EDA}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1EDB}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EDC}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1EDD}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EDE}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1EDF}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EE0}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1EE1}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EE2}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{1EE3}{\\text{o}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{01A0}{\\text{O}}"
+                                  "\\DeclareUnicodeCharacter{01A1}{\\text{o}}" #ơ
+                                  
+                                  "\\DeclareUnicodeCharacter{1EE4}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EE5}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EE6}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EE7}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{01AF}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{01B0}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EE8}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EE9}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EEA}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EEB}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EEC}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EED}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EEE}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EEF}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EF0}{\\text{U}}"
+                                  "\\DeclareUnicodeCharacter{1EF1}{\\text{u}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EF4}{\\text{Y}}"
+                                  "\\DeclareUnicodeCharacter{1EF5}{\\text{y}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EF6}{\\text{Y}}"
+                                  "\\DeclareUnicodeCharacter{1EF7}{\\text{y}}"
+                                  
+                                  "\\DeclareUnicodeCharacter{1EF8}{\\text{Y}}"
+                                  "\\DeclareUnicodeCharacter{1EF9}{\\text{y}}"
+                                  )
+                sympy_preview(latex_content, viewer='file', extra_preamble=extra_preamble, filename=latex_image_pathname, euler=False)
                 data['latex_image_filename'] = latex_image_filename
             except Exception as e:
                 if str(e).startswith("'latex' exited abnormally with the following output:"):

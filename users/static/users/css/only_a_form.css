@@ -38,6 +38,10 @@ form {
     box-shadow: var(--form-box-shadow);
 }
 
+div.input_div {
+    width: 182px;
+}
+
 input {
     min-width: 182px;
 }

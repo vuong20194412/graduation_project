@@ -132,7 +132,7 @@
             <div class="in_main" autofocus>
                 <div style="display:flex;gap:3px;padding:8px 8px 0 8px;">
                     <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
-                    <div style="display:flex;gap:3px;">
+                    <div style="display:flex;gap:3px;flex-wrap:wrap;">
                         <p>{{answer.question.content}}</p>
                         {% if question_latex_image %}
                             <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>

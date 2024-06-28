@@ -296,7 +296,7 @@
 
                         <div style="display:flex;gap:3px;">
                             <strong style="width:fit-content;min-width:fit-content;">Câu hỏi:</strong>
-                            <div style="display:flex;gap:3px;">
+                            <div style="display:flex;gap:3px;flex-wrap:wrap;">
                                 <p>{{preview_question.content}}</p>
                                 {% if latex_image_url %}
                                     <img src="{{base_url}}{{latex_image_url}}" style="max-width:calc(100% - 16px);align-self:center;"/>

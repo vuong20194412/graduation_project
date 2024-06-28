@@ -25,7 +25,7 @@
         <form method="post">
             <h2>ĐĂNG NHẬP</h2>
             {% csrf_token %}
-            <div>
+            <div class="input_div">
                 <input required autofocus
                        type="text" spellcheck="false"
                        id="id_email"
@@ -38,7 +38,7 @@
                     <p class="error" data-ref="id_email">{{error}}</p>
                 {% endfor %}
             </div>
-            <div>
+            <div class="input_div">
                 <input required
                        type="password"
                        id="id_password"

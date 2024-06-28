@@ -141,7 +141,7 @@
                         </div>
                     {% endif %}
                     <h2>Nội dung câu hỏi:</h2>
-                    <div style="display:flex;gap:3px;">
+                    <div style="display:flex;gap:3px;flex-wrap:wrap;">
                         <p>{{question.content}}</p>
                         {% if question_latex_image %}
                             <img src="{{question_latex_image.url}}" style="max-width:calc(100% - 16px);align-self:center;"/>
