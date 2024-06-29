@@ -517,10 +517,10 @@ def process_new_question(request):
                 is_valid = False
                 data['image']['errors'].append('Hình ảnh phải là ảnh .png, .jpg hoặc .jpeg')
                 if image.size >= limit_image_file_size:
-                    data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
+                    data['image']['errors'].append(f'Kích thước hình ảnh phải bé hơn {QuestionMedia.MAX_IMAGE_SIZE}MB')
             elif image.size >= limit_image_file_size:
                 is_valid = False
-                data['image']['errors'].append('Kích thước hình ảnh phải bé hơn 2MB')
+                data['image']['errors'].append(f'Kích thước hình ảnh phải bé hơn {QuestionMedia.MAX_IMAGE_SIZE}MB')
 
         video = request.FILES.get('video')
         if video:
@@ -529,10 +529,10 @@ def process_new_question(request):
                 is_valid = False
                 data['video']['errors'].append('Video phải là video .mp4')
                 if video.size >= limit_video_file_size:
-                    data['video']['errors'].append('Kích thước hình video phải bé hơn 2MB')
+                    data['video']['errors'].append(f'Kích thước hình video phải bé hơn {QuestionMedia.MAX_VIDEO_SIZE}MB')
             elif video.size >= limit_video_file_size:
                 is_valid = False
-                data['video']['errors'].append('Kích thước video phải bé hơn 2MB')
+                data['video']['errors'].append(f'Kích thước video phải bé hơn {QuestionMedia.MAX_VIDEO_SIZE}MB')
 
         audio = request.FILES.get('audio')
         if audio:
@@ -541,10 +541,10 @@ def process_new_question(request):
                 is_valid = False
                 data['audio']['errors'].append('Audio phải là audio .mp3')
                 if audio.size >= limit_audio_file_size:
-                    data['audio']['errors'].append('Kích thước audio phải bé hơn 2MB')
+                    data['audio']['errors'].append(f'Kích thước audio phải bé hơn {QuestionMedia.MAX_AUDIO_SIZE}MB')
             elif audio.size >= limit_audio_file_size:
                 is_valid = False
-                data['audio']['errors'].append('Kích thước audio phải bé hơn 2MB')
+                data['audio']['errors'].append(f'Kích thước audio phải bé hơn {QuestionMedia.MAX_AUDIO_SIZE}MB')
 
         params = request.POST
 
