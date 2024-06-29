@@ -601,6 +601,7 @@ def process_new_question(request):
                 is_valid = False
                 data['tag_id']['errors'].append('Nhãn này không hợp lệ.')
             else:
+                data['tag_id']['value'] = tag[0].id
                 tag_name = tag[0].name
 
         data['latex_content']['value'] = params.get('latex_content', '')
