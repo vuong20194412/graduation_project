@@ -214,6 +214,11 @@
                         {% endfor %}
                     </div>
                     <div>
+                        {% for error in data.errors %}
+                            <p data-ref>{{error}}</p>
+                        {% endfor %}
+                    </div>
+                    <div>
                         <button type="submit">OK</button>
                     </div>
                 </form>

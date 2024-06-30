@@ -1376,6 +1376,10 @@ def process_new_question_evaluation(request, question_id):
         data['question_rating']['value'] = params.get('question_rating', '')
         question_rating = convert_to_int(string=data['question_rating']['value'].strip())
 
+        if question_rating not in [1,2,3,4,5] and not evaluation_content:
+            is_valid = False
+            data['errors'].append('Đánh giá bằng nhập nội dung, số sao hoặc cả hai')
+
         if is_valid:
             qe = QuestionEvaluation(
                 content=evaluation_content,

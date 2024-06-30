@@ -95,7 +95,7 @@ class Question(models.Model):
     def get_rating(self):
         user_ids = QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False).values_list('user_id', flat=True).distinct()
         latest_evaluation_ids = [
-            Subquery(QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at').annotate(latest=Max('created_at')).order_by('-latest').values_list('id', flat=True)) for user_id in user_ids
+            Subquery(QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at')[0:1].values_list('id', flat=True)) for user_id in user_ids
         ]
         qes = QuestionEvaluation.objects.filter(id__in=latest_evaluation_ids)
         if qes:
