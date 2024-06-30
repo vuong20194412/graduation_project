@@ -94,13 +94,17 @@ class Question(models.Model):
 
     def get_rating(self):
         user_ids = QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False).values_list('user_id', flat=True).distinct()
-        latest_evaluation_ids = [QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at')[0:1].values_list('id', flat=True) for user_id in user_ids]
-        qes = QuestionEvaluation.objects.filter(id__in=latest_evaluation_ids)
+        # are querying individually because "This version of MySQL doesn't yet support 'LIMIT & IN/ALL/ANY/SOME subquery'"
+        qes = [QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at')[0:1] for user_id in user_ids]
         if qes:
             sum_start = 0
+            len_qes = 0
             for qe in qes:
-                sum_start += qe.question_rating
-            return sum_start / len(qes), len(qes)
+                # qe is queryset because "are querying individually"
+                if qe:
+                    len_qes += 1
+                    sum_start += qe[0].question_rating
+            return sum_start / len_qes, len_qes
         return 0, 0
 
 
