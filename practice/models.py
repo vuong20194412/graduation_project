@@ -5,7 +5,7 @@ import random
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.db.models import Max, F, Q, Subquery
+from django.db.models import Max, F, Q, Subquery, Count
 from django.utils.translation import gettext_lazy as _
 
 
@@ -94,9 +94,7 @@ class Question(models.Model):
 
     def get_rating(self):
         user_ids = QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False).values_list('user_id', flat=True).distinct()
-        latest_evaluation_ids = [
-            Subquery(QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at')[0:1].values_list('id', flat=True)) for user_id in user_ids
-        ]
+        latest_evaluation_ids = [QuestionEvaluation.objects.filter(question_id=self.id, question_rating__isnull=False, user_id=user_id).order_by('-created_at')[0:1].values_list('id', flat=True) for user_id in user_ids]
         qes = QuestionEvaluation.objects.filter(id__in=latest_evaluation_ids)
         if qes:
             sum_start = 0
