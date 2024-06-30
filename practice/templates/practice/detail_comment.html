@@ -179,7 +179,7 @@
                         <p><strong>Mã tác giả:</strong>&nbsp;<a href="{% url 'practice:process_profile' comment.question.user.id %}" style="text-decoration:none;">{{comment.question.user.code}}</a></p>
                     </div>
                     <div class="row">
-                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Nhãn câu hỏi:</strong>{{comment.question.tag}}</p>
+                        <p style="max-width:calc(100% - 60px);word-break:break-word;"><strong>Nhãn câu hỏi:</strong>{{comment.question.tag.name}}</p>
                     </div>
                     {% if comment.question.get_display_hashtags %}
                         <div class="row">
@@ -201,7 +201,7 @@
                     <div class="row">
                         <p>&nbsp;&nbsp;Các lựa chọn:</p>
                         <ol style="margin-top:3px;">
-                            {% for choice in question.choices %}
+                            {% for choice in comment.question.choices %}
                             <li style="word-break:break-word;">{{choice.content}}</li>
                             {% endfor %}
                         </ol>
